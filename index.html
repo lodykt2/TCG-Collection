@@ -460,23 +460,44 @@ const JTCG_GAMES={
   'f':null,
   'r':'riftbound'
 };
+
+// Batch price loader - fetches all cards in one request (max 200 per batch)
+async function fetchPricesBatch(game,cards){
+  const slug=JTCG_GAMES[game];
+  if(!slug)return;
+  const BATCH=200;
+  for(let i=0;i<cards.length;i+=BATCH){
+    const chunk=cards.slice(i,i+BATCH);
+    const body=chunk.map(c=>({game:slug,name:c.name}));
+    try{
+      const r=await fetch('https://api.justtcg.com/v1/cards',{
+        method:'POST',
+        headers:{'x-api-key':JTCG_KEY,'Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      });
+      if(!r.ok)continue;
+      const d=await r.json();
+      const results=d.data||d.cards||d||[];
+      // Map results back to cards by name
+      results.forEach(result=>{
+        const name=(result.name||'').toLowerCase().trim();
+        const match=chunk.find(c=>c.name.toLowerCase().trim()===name
+          ||c.name.toLowerCase().trim().includes(name)
+          ||name.includes(c.name.toLowerCase().trim()));
+        if(match){
+          match.price=result.price||result.market_price||result.tcgplayer_price||null;
+          const key=game+'::'+match.name;
+          priceCache[key]=match.price;
+        }
+      });
+    }catch(e){console.warn('Batch price fetch failed:',e);}
+  }
+}
+
+// Legacy single card fetch (fallback)
 async function fetchPrice(game,cardName,cardCode){
   const key=game+'::'+(cardCode||cardName);
   if(priceCache[key]!==undefined)return priceCache[key];
-  try{
-    const q=encodeURIComponent(cardName);
-    const gameSlug=JTCG_GAMES[game];
-    if(!gameSlug){priceCache[key]=null;return null;}
-    const r=await fetch('https://api.justtcg.com/v1/cards?game='+gameSlug+'&name='+q,{headers:{'x-api-key':JTCG_KEY}});
-    if(!r.ok){priceCache[key]=null;return null;}
-    const d=await r.json();
-    const cards=d.data||d.cards||[];
-    if(cards.length){
-      const price=cards[0].price||cards[0].market_price||cards[0].tcgplayer_price||null;
-      priceCache[key]=price;
-      return price;
-    }
-  }catch(e){}
   priceCache[key]=null;
   return null;
 }
@@ -647,11 +668,7 @@ async function loadG(){
 }
 
 async function loadGPrices(){
-  for(const c of GC){
-    if(!c.price){
-      c.price=await fetchPrice('g',c.name,c.code);
-    }
-  }
+  await fetchPricesBatch('g',GC);
   savePrices('g',GC);
 }
 
@@ -695,7 +712,7 @@ async function loadD(){
 }
 
 async function loadDPrices(){
-  for(const c of DC){c.price=await fetchPrice('d',c.name,c.code);}
+  await fetchPricesBatch('d',DC);
   savePrices('d',DC);
 }
 
@@ -733,7 +750,7 @@ async function loadF(){
 }
 
 async function loadFPrices(){
-  for(const c of FC){c.price=await fetchPrice('f',c.name,c.code);}
+  // FF not supported by JustTCG, skip pricing
   savePrices('f',FC);
 }
 
@@ -782,12 +799,7 @@ async function loadR(){
 }
 
 async function loadRPrices(){
-  for(const c of RC){
-    if(c.tcgpId){
-      // Riftbound has direct TCGPlayer IDs — use JustTCG
-      c.price=await fetchPrice('r',c.name,c.code);
-    }
-  }
+  await fetchPricesBatch('r',RC);
   savePrices('r',RC);
 }
 
