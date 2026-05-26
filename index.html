@@ -424,7 +424,7 @@ function sw(g){
 async function fetchSheet(tabs){
   for(const tab of tabs){
     try{
-      const url='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:json'+(tab?'&sheet='+encodeURIComponent(tab):'');
+      const base='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:json'+(tab?'&sheet='+encodeURIComponent(tab):'');const url=CORS+encodeURIComponent(base);
       const r=await fetch(url);
       const t=await r.text();
       const j=JSON.parse(t.replace(/^[^\{]+/,'').replace(/[^\}]+$/,''));
@@ -439,24 +439,35 @@ async function fetchSheet(tabs){
   return{rows:[],cols:[]};
 }
 
+const CORS='https://corsproxy.io/?url=';
 async function fetchApi(url,maxP=30){
   let p=1,all=[];
   while(true){
-    const r=await fetch(url+'?page='+p+'&limit=100');
-    const d=await r.json();
-    all=all.concat(d.data||[]);
-    if(p>=(d.totalPages||1))break;
-    p++;if(p>maxP)break;
+    try{
+      const r=await fetch(CORS+encodeURIComponent(url+'?page='+p+'&limit=100'));
+      const d=await r.json();
+      all=all.concat(d.data||[]);
+      if(p>=(d.totalPages||1))break;
+      p++;if(p>maxP)break;
+    }catch(e){break;}
   }
   return all;
 }
 
+const JTCG_GAMES={
+  'g':'gundam-card-game',
+  'd':'digimon-card-game',
+  'f':null,
+  'r':'riftbound'
+};
 async function fetchPrice(game,cardName,cardCode){
   const key=game+'::'+(cardCode||cardName);
   if(priceCache[key]!==undefined)return priceCache[key];
   try{
     const q=encodeURIComponent(cardName);
-    const r=await fetch('https://api.justtcg.com/v1/cards?game='+game+'&name='+q,{headers:{'x-api-key':JTCG_KEY}});
+    const gameSlug=JTCG_GAMES[game];
+    if(!gameSlug){priceCache[key]=null;return null;}
+    const r=await fetch('https://api.justtcg.com/v1/cards?game='+gameSlug+'&name='+q,{headers:{'x-api-key':JTCG_KEY}});
     if(!r.ok){priceCache[key]=null;return null;}
     const d=await r.json();
     const cards=d.data||d.cards||[];
@@ -638,7 +649,7 @@ async function loadG(){
 async function loadGPrices(){
   for(const c of GC){
     if(!c.price){
-      c.price=await fetchPrice('gundam',c.name,c.code);
+      c.price=await fetchPrice('g',c.name,c.code);
     }
   }
   savePrices('g',GC);
@@ -684,7 +695,7 @@ async function loadD(){
 }
 
 async function loadDPrices(){
-  for(const c of DC){c.price=await fetchPrice('digimon',c.name,c.code);}
+  for(const c of DC){c.price=await fetchPrice('d',c.name,c.code);}
   savePrices('d',DC);
 }
 
@@ -722,7 +733,7 @@ async function loadF(){
 }
 
 async function loadFPrices(){
-  for(const c of FC){c.price=await fetchPrice('fftcg',c.name,c.code);}
+  for(const c of FC){c.price=await fetchPrice('f',c.name,c.code);}
   savePrices('f',FC);
 }
 
@@ -774,7 +785,7 @@ async function loadRPrices(){
   for(const c of RC){
     if(c.tcgpId){
       // Riftbound has direct TCGPlayer IDs — use JustTCG
-      c.price=await fetchPrice('riftbound',c.name,c.code);
+      c.price=await fetchPrice('r',c.name,c.code);
     }
   }
   savePrices('r',RC);
