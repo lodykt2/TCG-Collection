@@ -404,7 +404,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 var SID='1WTrEW_0KgGwhSgk-KtHqptgfHCQ-gQOd0PXV9nLF1uE';
 var SCRIPT_URL='https://script.google.com/macros/s/AKfycbz8F0okJcTTQAKbwUizdTIo7_iVoneX_K9aFQsU2cN2WxBQMBsh-y52BwoYJnKQTn2r/exec';
-var CORS='https://corsproxy.io/?url=';
+var CORS='https://api.allorigins.win/raw?url=';
 var GC=[],DC=[],FC=[],RC=[];
 var GL=false,DL=false,FL=false,RL=false;
 
@@ -431,14 +431,18 @@ async function fetchTab(tabName){
     if(r.c)r.c.forEach(function(c,i){o[cols[i]]=c&&c.v!==null?c.v:'';});
     return o;
   }).filter(function(r){return Object.values(r).some(function(v){return v!==''&&v!==null;});});
+  console.log('fetchTab '+tabName+': rows='+rows.length+' cols='+JSON.stringify(cols));
   return{rows:rows,cols:cols};
 }
 
 function mergeData(dataRows,dataCols,binderRows,binderCols){
+  console.log('mergeData: dataRows='+dataRows.length+' dataCols='+JSON.stringify(dataCols));
+  console.log('mergeData: binderRows='+binderRows.length+' binderCols='+JSON.stringify(binderCols));
   var ownedMap={};
   var bNameCol=binderCols.findIndex(function(k){return k.includes('name');});
   var bCodeCol=binderCols.findIndex(function(k){return k.includes('card no')||k.includes('serial')||k.includes('number');});
   var bOwnCol=binderCols.findIndex(function(k){return k.includes('own')||k.includes('quantity');});
+  console.log('mergeData: bNameCol='+bNameCol+' bCodeCol='+bCodeCol+' bOwnCol='+bOwnCol);
   binderRows.forEach(function(r){
     var name=String(r[binderCols[bNameCol>=0?bNameCol:0]]||'').trim().toLowerCase();
     var code=bCodeCol>=0?String(r[binderCols[bCodeCol]]||'').trim().toLowerCase():'';
