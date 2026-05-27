@@ -520,12 +520,9 @@ function makeCard(c,p){
     priceHtml='<div class="cprice">$'+c.price.toFixed(2)+chg+'</div>';
   }
 
-  const imgHtml=c.img
-    ? '<img src="'+c.img+'" alt="" loading="lazy" onerror="this.style.display='none'">'
-    : '<span class="ghost">'+(p==='g'?'⬡':p==='d'?'◉':p==='f'?'✦':'◆')+'</span>';
-
+  const ghost='<span class="ghost">'+(p==='g'?'⬡':p==='d'?'◉':p==='f'?'✦':'◆')+'</span>';
   el.innerHTML=(p==='g'?'<div class="scan-line"></div>':'')
-    +'<div class="cimg">'+imgHtml+'<div class="badge '+(c.owned?'ob':'mb')+'">'+(c.owned?'✓':'○')+'</div></div>'
+    +'<div class="cimg">'+ghost+'<div class="badge '+(c.owned?'ob':'mb')+'">'+(c.owned?'✓':'○')+'</div></div>'
     +'<div class="cbody">'
     +'<div class="cname">'+c.name+'</div>'
     +'<div class="crow"><span class="ccode">'+c.code+'</span>'+(c.rarity?'<span class="rar rar-'+rarCls+'">'+c.rarity+'</span>':'')+'</div>'
@@ -533,6 +530,14 @@ function makeCard(c,p){
     +priceHtml
     +'<a class="ctcg" href="'+tcgUrl+'" target="_blank" rel="noopener">$ TCGPlayer</a>'
     +'</div>';
+  if(c.img){
+    const im=document.createElement('img');
+    im.src=c.img; im.alt=''; im.loading='lazy';
+    im.onerror=function(){this.style.display='none';};
+    const cimg=el.querySelector('.cimg');
+    cimg.insertBefore(im,cimg.firstChild);
+    cimg.querySelector('.ghost') && cimg.querySelector('.ghost').remove();
+  }
 
   el.addEventListener('click',function(e){
     if(e.target.closest('a'))return;
