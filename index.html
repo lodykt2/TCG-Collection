@@ -403,11 +403,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 const SID='1WTrEW_0KgGwhSgk-KtHqptgfHCQ-gQOd0PXV9nLF1uE';
-const JTCG_KEY='tcg_2373a4fb33604d35bf20461258949f4f';
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbz8F0okJcTTQAKbwUizdTIo7_iVoneX_K9aFQsU2cN2WxBQMBsh-y52BwoYJnKQTn2r/exec';
+const CORS='https://corsproxy.io/?url=';
+
 let GC=[],DC=[],FC=[],RC=[];
 let GL=false,DL=false,FL=false,RL=false;
-const priceCache={};
-const priceHistory=JSON.parse(localStorage.getItem('tcg_prices')||'{}');
+
+// Price history for change indicator (persisted in localStorage)
+const priceHistory=JSON.parse(localStorage.getItem('tcg_ph')||'{}');
 
 function sw(g){
   ['g','d','f','r'].forEach(x=>{
@@ -421,115 +424,66 @@ function sw(g){
   if(g==='r'&&!RL)loadR();
 }
 
-async function fetchSheet(tabs){
-  for(const tab of tabs){
-    try{
-      const base='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:json'+(tab?'&sheet='+encodeURIComponent(tab):'');const url=CORS+encodeURIComponent(base);
-      const r=await fetch(url);
-      const t=await r.text();
-      const j=JSON.parse(t.replace(/^[^\{]+/,'').replace(/[^\}]+$/,''));
-      if(j.table&&j.table.rows&&j.table.rows.length){
-        const cols=j.table.cols.map(c=>(c.label||'').toLowerCase().trim());
-        const rows=j.table.rows.map(r=>{const o={};r.c&&r.c.forEach((c,i)=>{o[cols[i]]=c&&c.v!==null?c.v:'';});return o;})
-          .filter(r=>Object.values(r).some(v=>v!==''&&v!==null&&v!==undefined));
-        if(rows.length)return{rows,cols};
-      }
-    }catch(e){}
-  }
-  return{rows:[],cols:[]};
+// ── Fetch a sheet tab via gviz ──────────────────────────────
+async function fetchTab(tabName){
+  const base='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:json&sheet='+encodeURIComponent(tabName);
+  const url=CORS+encodeURIComponent(base);
+  const r=await fetch(url);
+  const t=await r.text();
+  const j=JSON.parse(t.replace(/^[^\{]+/,'').replace(/[^\}]+$/,''));
+  if(!j.table||!j.table.rows||!j.table.rows.length) return{rows:[],cols:[]};
+  const cols=j.table.cols.map(c=>(c.label||'').toLowerCase().trim());
+  const rows=j.table.rows.map(r=>{
+    const o={};
+    r.c&&r.c.forEach((c,i)=>{o[cols[i]]=c&&c.v!==null?c.v:'';});
+    return o;
+  }).filter(r=>Object.values(r).some(v=>v!==''&&v!==null&&v!==undefined));
+  return{rows,cols};
 }
 
-const CORS='https://corsproxy.io/?url=';
-async function fetchApi(url,maxP=30){
-  let p=1,all=[];
-  while(true){
-    try{
-      const r=await fetch(CORS+encodeURIComponent(url+'?page='+p+'&limit=100'));
-      const d=await r.json();
-      all=all.concat(d.data||[]);
-      if(p>=(d.totalPages||1))break;
-      p++;if(p>maxP)break;
-    }catch(e){break;}
-  }
-  return all;
-}
+// ── Merge data tab + binder tab ─────────────────────────────
+// Data tab columns: Card Code | Card Name | Set | Rarity | Image URL | Current Price | Previous Price | Price Change | Last Updated
+// Binder tab: contains owned/quantity status per card
+function mergeData(dataRows, dataCols, binderRows, binderCols){
+  // Build owned map from binder: key=cardCode or cardName → owned bool
+  const ownedMap={};
+  const bNameCol=binderCols.findIndex(k=>k.includes('name'));
+  const bCodeCol=binderCols.findIndex(k=>k.includes('card no')||k.includes('card number')||k.includes('serial')||k.includes('number'));
+  const bOwnCol=binderCols.findIndex(k=>k.includes('own')||k.includes('quantity')||k.includes('have'));
 
-const JTCG_GAMES={
-  'g':'gundam-card-game',
-  'd':'digimon-card-game',
-  'f':null,
-  'r':'riftbound'
-};
-
-// Batch price loader - fetches all cards in one request (max 200 per batch)
-async function fetchPricesBatch(game,cards){
-  const slug=JTCG_GAMES[game];
-  if(!slug)return;
-  const BATCH=200;
-  for(let i=0;i<cards.length;i+=BATCH){
-    const chunk=cards.slice(i,i+BATCH);
-    const body=chunk.map(c=>({game:slug,name:c.name}));
-    try{
-      const r=await fetch('https://api.justtcg.com/v1/cards',{
-        method:'POST',
-        headers:{'x-api-key':JTCG_KEY,'Content-Type':'application/json'},
-        body:JSON.stringify(body)
-      });
-      if(!r.ok)continue;
-      const d=await r.json();
-      const results=d.data||d.cards||d||[];
-      // Map results back to cards by name
-      results.forEach(result=>{
-        const name=(result.name||'').toLowerCase().trim();
-        const match=chunk.find(c=>c.name.toLowerCase().trim()===name
-          ||c.name.toLowerCase().trim().includes(name)
-          ||name.includes(c.name.toLowerCase().trim()));
-        if(match){
-          match.price=result.price||result.market_price||result.tcgplayer_price||null;
-          const key=game+'::'+match.name;
-          priceCache[key]=match.price;
-        }
-      });
-    }catch(e){console.warn('Batch price fetch failed:',e);}
-  }
-}
-
-// Legacy single card fetch (fallback)
-async function fetchPrice(game,cardName,cardCode){
-  const key=game+'::'+(cardCode||cardName);
-  if(priceCache[key]!==undefined)return priceCache[key];
-  priceCache[key]=null;
-  return null;
-}
-
-function getPriceChange(key,currentPrice){
-  if(!currentPrice)return null;
-  const prev=priceHistory[key];
-  if(!prev||!prev.price)return null;
-  const diff=currentPrice-prev.price;
-  if(Math.abs(diff)<0.01)return null;
-  return {diff:diff.toFixed(2),up:diff>0};
-}
-
-function savePrices(game,cards){
-  const now=Date.now();
-  cards.forEach(c=>{
-    if(c.price){
-      const key=game+'::'+c.name;
-      priceHistory[key]={price:c.price,ts:now};
-    }
+  binderRows.forEach(r=>{
+    const name=String(r[binderCols[bNameCol>=0?bNameCol:0]]||'').trim().toLowerCase();
+    const code=bCodeCol>=0?String(r[binderCols[bCodeCol]]||'').trim().toLowerCase():'';
+    const qty=bOwnCol>=0?r[binderCols[bOwnCol]]:'';
+    const owned=String(qty).trim()==='1'||String(qty).trim().toLowerCase()==='yes';
+    if(name) ownedMap[name]=owned;
+    if(code) ownedMap[code]=owned;
   });
-  try{localStorage.setItem('tcg_prices',JSON.stringify(priceHistory));}catch(e){}
+
+  // Map data rows
+  return dataRows.map(r=>{
+    const code=String(r[dataCols[0]]||'').trim();
+    const name=String(r[dataCols[1]]||'').trim();
+    const set=String(r[dataCols[2]]||'').trim();
+    const rarity=String(r[dataCols[3]]||'').trim();
+    const img=String(r[dataCols[4]]||'').trim();
+    const price=parseFloat(r[dataCols[5]])||null;
+    const prevPrice=parseFloat(r[dataCols[6]])||null;
+    const priceChange=String(r[dataCols[7]]||'').trim();
+
+    // Check owned by name or code
+    const owned=ownedMap[name.toLowerCase()]||ownedMap[code.toLowerCase()]||false;
+
+    return{code,name,set,rarity,img,price,prevPrice,priceChange,owned};
+  }).filter(c=>c.name);
 }
 
-function norm(s){return(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
-function isOwned(val){
-  const v=String(val||'').trim();
-  return v==='1'||v.toLowerCase()==='yes'||v.toLowerCase()==='y'||v==='true'||v==='owned';
-}
-
-function setStats(p,cards,missingVal){
-  const o=cards.filter(c=>c.owned).length,t=cards.length,pct=t?Math.round(o/t*100):0;
+// ── Stats ───────────────────────────────────────────────────
+function setStats(p,cards){
+  const o=cards.filter(c=>c.owned).length;
+  const t=cards.length;
+  const pct=t?Math.round(o/t*100):0;
+  const missingVal=cards.filter(c=>!c.owned&&c.price).reduce((s,c)=>s+c.price,0);
   document.getElementById(p+'total').textContent=t;
   document.getElementById(p+'owned').textContent=o;
   document.getElementById(p+'miss').textContent=t-o;
@@ -544,6 +498,7 @@ function populateSets(selId,cards){
   document.getElementById(selId).innerHTML='<option value="">All sets</option>'+sets.map(s=>'<option value="'+s+'">'+s+'</option>').join('');
 }
 
+// ── Filter ──────────────────────────────────────────────────
 function filterCards(cards,si,oi,ssi,ri,pi){
   const q=document.getElementById(si).value.toLowerCase();
   const fo=document.getElementById(oi).value;
@@ -551,7 +506,7 @@ function filterCards(cards,si,oi,ssi,ri,pi){
   const fr=document.getElementById(ri).value;
   const fp=parseFloat(document.getElementById(pi).value)||Infinity;
   return cards.filter(c=>{
-    if(q&&!c.name.toLowerCase().includes(q)&&!(c.code||'').toLowerCase().includes(q))return false;
+    if(q&&!c.name.toLowerCase().includes(q)&&!c.code.toLowerCase().includes(q))return false;
     if(fo==='owned'&&!c.owned)return false;
     if(fo==='missing'&&c.owned)return false;
     if(fs&&c.set!==fs)return false;
@@ -561,31 +516,36 @@ function filterCards(cards,si,oi,ssi,ri,pi){
   });
 }
 
-function priceHtml(c,theme){
-  if(!c.price)return '';
-  const chg=getPriceChange(theme+'::'+c.name,c.price);
-  const chgHtml=chg?'<span class="chg-'+(chg.up?'up':'dn')+'">'+(chg.up?'▲':'▼')+' $'+Math.abs(chg.diff)+'</span>':'';
-  return '<div class="cprice">$'+c.price.toFixed(2)+chgHtml+'</div>';
-}
-
+// ── Card HTML ───────────────────────────────────────────────
 function cardHtml(c,p){
-  const img=c.img||'';
   const rarCls=(c.rarity||'').replace(/\s+/g,'.').replace(/[^a-zA-Z0-9.]/g,'');
   const tcgGame=p==='g'?'gundam-card-game':p==='d'?'digimon-card-game':p==='f'?'final-fantasy-tcg':'riftbound-league-of-legends-trading-card-game';
   const tcgUrl='https://www.tcgplayer.com/search/'+tcgGame+'/product?q='+encodeURIComponent(c.name);
   const scan=p==='g'?'<div class="scan-line"></div>':'';
-  return'<div class="card '+(c.owned?'owned':'')+'" onclick="toggleOwned(\''+p+'\',\''+c.name.replace(/'/g,"\'")+'\')" title="Click to toggle owned/missing">'
+
+  // Price change indicator
+  let priceHtml='';
+  if(c.price){
+    let chgHtml='';
+    if(c.priceChange&&c.priceChange!==''){
+      const up=c.priceChange.startsWith('+');
+      chgHtml='<span class="chg-'+(up?'up':'dn')+'">'+(up?'▲':'▼')+' '+c.priceChange.replace(/[+-]/,'')+'</span>';
+    }
+    priceHtml='<div class="cprice">$'+c.price.toFixed(2)+chgHtml+'</div>';
+  }
+
+  return'<div class="card '+(c.owned?'owned':'')+'" onclick="toggleOwned(''+p+'',''+c.name.replace(/\/g,'\\').replace(/'/g,"\'")+'',''+c.code.replace(/'/g,"\'")+'')" title="Click to toggle owned/missing">'
     +'<div class="cimg">'
     +scan
-    +(img?'<img src="'+img+'" alt="'+c.name+'" loading="lazy" onerror="this.style.display=\'none\'">'
+    +(c.img?'<img src="'+c.img+'" alt="'+c.name+'" loading="lazy" onerror="this.style.display='none'">'
         :'<span class="ghost">'+(p==='g'?'⬡':p==='d'?'◉':p==='f'?'✦':'◆')+'</span>')
     +'<div class="badge '+(c.owned?'ob':'mb')+'">'+(c.owned?'✓':'○')+'</div>'
     +'</div>'
     +'<div class="cbody">'
     +'<div class="cname" title="'+c.name+'">'+c.name+'</div>'
-    +'<div class="crow"><span class="ccode">'+(c.code||'')+'</span>'+(c.rarity?'<span class="rar rar-'+rarCls+'">'+c.rarity+'</span>':'')+'</div>'
+    +'<div class="crow"><span class="ccode">'+c.code+'</span>'+(c.rarity?'<span class="rar rar-'+rarCls+'">'+c.rarity+'</span>':'')+'</div>'
     +(c.set?'<div class="cset" title="'+c.set+'">'+c.set+'</div>':'')
-    +priceHtml(c,p)
+    +priceHtml
     +'<a class="ctcg" href="'+tcgUrl+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">$ TCGPlayer</a>'
     +'</div></div>';
 }
@@ -596,214 +556,95 @@ function renderGrid(id,cards,p,emColor){
     :'<div class="empty" style="color:'+emColor+'">No cards match.</div>';
 }
 
-// TOGGLE OWNED
-function toggleOwned(game,name){
-  let arr=game==='g'?GC:game==='d'?DC:game==='f'?FC:RC;
-  const c=arr.find(x=>x.name===name);
+// ── Toggle owned & sync to sheet ────────────────────────────
+function toggleOwned(game,name,code){
+  const arr=game==='g'?GC:game==='d'?DC:game==='f'?FC:RC;
+  const c=arr.find(x=>x.name===name||(code&&x.code===code));
   if(!c)return;
   c.owned=!c.owned;
   const tab=game==='g'?'Gundam Binder Collection':game==='d'?'Digimon Binder Collection':game==='f'?'Final Fantacy Binder Collection':'Riftbound';
-  const newVal=c.owned?1:0;
-  // Update stats and re-render
-  if(game==='g'){updateGStats();renderG();}
-  else if(game==='d'){updateDStats();renderD();}
-  else if(game==='f'){updateFStats();renderF();}
-  else{updateRStats();renderR();}
-  // Sync to sheet if script URL is set
-  const scriptUrl=localStorage.getItem('tcg_script_url');
-  if(scriptUrl){
-    fetch(scriptUrl,{method:'POST',body:JSON.stringify({action:'toggle',tab:tab,name:name})})
-      .catch(e=>console.warn('Sheet sync failed:',e));
-  }
+
+  if(game==='g'){setStats('g-',GC);renderG();}
+  else if(game==='d'){setStats('d-',DC);renderD();}
+  else if(game==='f'){setStats('f-',FC);renderF();}
+  else{setStats('r-',RC);renderR();}
+
+  // Sync to Google Sheet via Apps Script
+  fetch(SCRIPT_URL,{
+    method:'POST',
+    body:JSON.stringify({action:'toggle',tab:tab,name:name}),
+    headers:{'Content-Type':'application/json'}
+  }).catch(e=>console.warn('Sheet sync failed:',e));
 }
 
-function calcMissingVal(cards){return cards.filter(c=>!c.owned&&c.price).reduce((s,c)=>s+c.price,0);}
-
-// GUNDAM
+// ── Load functions ───────────────────────────────────────────
 async function loadG(){
   GL=true;
   document.getElementById('g-grid').innerHTML='<div class="loading" style="color:#58a6ff"><span class="spin"></span>Syncing...</div>';
   try{
-    const[sh,api]=await Promise.all([
-      fetchSheet(['Gundam Binder Collection','Gundam','Sheet1','']),
-      fetchApi('https://apitcg.com/api/gundam/cards',10)
+    const[data,binder]=await Promise.all([
+      fetchTab('Gundam_Data'),
+      fetchTab('Gundam Binder Collection')
     ]);
-    const{rows,cols}=sh;
-    const nc=cols.findIndex(k=>k.includes('name'));
-    const qc=cols.findIndex(k=>k.includes('quantity')||k.includes('own')||k.includes('have'));
-    const cc=cols.findIndex(k=>k.includes('card no')||k.includes('card number')||k.includes('no.')||k==='card no.');
-    const rc=cols.findIndex(k=>k.includes('rarity'));
-    const sc=cols.findIndex(k=>k.includes('set'));
-    const apiMap={};
-    api.forEach(c=>{apiMap[norm(c.name)]=c;if(c.code)apiMap[norm(c.code)]=c;});
-    GC=rows.filter(r=>{
-      const n=String(r[cols[nc]]||'').trim();
-      return n&&!n.match(/^[A-Z0-9]+\s+[A-Za-z]/)||n.length>0;
-    }).filter(r=>{
-      // skip set header rows (black rows) - they have no card number
-      const cardNo=cc>=0?String(r[cols[cc]]||'').trim():'';
-      if(!cardNo&&cols[cc]!==undefined)return false;
-      const name=String(r[cols[nc]]||'').trim();
-      return name.length>0;
-    }).map(r=>{
-      const rawName=String(r[cols[nc]]||'').trim();
-      const name=rawName.includes('|')?rawName.split('|')[0].trim():rawName;
-      const qty=qc>=0?r[cols[qc]]:'';
-      const owned=isOwned(qty)||String(qty)==='1';
-      const code=cc>=0?String(r[cols[cc]]||'').trim():'';
-      const rarity=rc>=0?String(r[cols[rc]]||'').trim():'';
-      const set=sc>=0?String(r[cols[sc]]||'').trim():'';
-      const hit=apiMap[norm(name)]||api.find(c=>norm(c.name).includes(norm(name))&&norm(name).length>3)||null;
-      const img=hit?.images?.small||'';
-      const apiSet=hit?.set?.name||set||'';
-      const apiRar=hit?.rarity||rarity||'';
-      return{name,owned,code:hit?.code||code,rarity:apiRar,set:apiSet,img,price:null};
-    }).filter(c=>c.name);
+    GC=mergeData(data.rows,data.cols,binder.rows,binder.cols);
+    setStats('g-',GC);
     populateSets('g-fs',GC);
-    await loadGPrices();
-    updateGStats();
     document.getElementById('g-sub').textContent=GC.length+' cards · '+new Date().toLocaleTimeString();
     renderG();
   }catch(e){document.getElementById('g-grid').innerHTML='<div class="error" style="background:#160b0b;border:0.5px solid #6e1a1a;color:#f85149">Error: '+e.message+'</div>';}
 }
 
-async function loadGPrices(){
-  await fetchPricesBatch('g',GC);
-  savePrices('g',GC);
-}
-
-function updateGStats(){setStats('g-',GC,calcMissingVal(GC));}
-function renderG(){renderGrid('g-grid',filterCards(GC,'g-s','g-fo','g-fs','g-fr','g-maxp'),'g','#484f58');}
-
-// DIGIMON
 async function loadD(){
   DL=true;
   document.getElementById('d-grid').innerHTML='<div class="loading" style="color:#378ADD"><span class="spin"></span>Loading...</div>';
   try{
-    const[sh,api]=await Promise.all([
-      fetchSheet(['Digimon Binder Collection','Digimon','Sheet2','']),
-      fetchApi('https://apitcg.com/api/digimon/cards',30)
+    const[data,binder]=await Promise.all([
+      fetchTab('Digimon_Data'),
+      fetchTab('Digimon Binder Collection')
     ]);
-    const{rows,cols}=sh;
-    const nc=cols.findIndex(k=>k.includes('card name')||k.includes('name'));
-    const oc=cols.findIndex(k=>k.includes('owned')||k.includes('have')||k.includes('quantity'));
-    const cc=cols.findIndex(k=>k.includes('card number')||k.includes('number')||k.includes('code'));
-    const rc=cols.findIndex(k=>k.includes('rarity'));
-    const setc=cols.findIndex(k=>k.includes('set')||k.includes('series'));
-    const apiMap={};
-    api.forEach(c=>{apiMap[norm(c.name)]=c;if(c.code)apiMap[norm(c.code)]=c;});
-    DC=rows.map(r=>{
-      const name=String(r[cols[nc>=0?nc:0]]||'').trim();
-      if(!name)return null;
-      const qty=oc>=0?r[cols[oc]]:'';
-      const owned=String(qty)==='1'||isOwned(qty);
-      const code=cc>=0?String(r[cols[cc]]||'').trim():'';
-      const rarity=rc>=0?String(r[cols[rc]]||'').trim():'';
-      const set=setc>=0?String(r[cols[setc]]||'').trim():'';
-      const hit=apiMap[norm(code)]||apiMap[norm(name)]||api.find(c=>norm(c.name).includes(norm(name))&&norm(name).length>3)||null;
-      return{name,owned,code:hit?.code||code,rarity:hit?.rarity||rarity,set:hit?.set?.name||set,img:hit?.images?.small||'',price:null};
-    }).filter(Boolean);
+    DC=mergeData(data.rows,data.cols,binder.rows,binder.cols);
+    setStats('d-',DC);
     populateSets('d-fs',DC);
-    await loadDPrices();
-    updateDStats();
     document.getElementById('d-sub').textContent=DC.length+' cards · '+new Date().toLocaleTimeString();
     renderD();
   }catch(e){document.getElementById('d-grid').innerHTML='<div class="error" style="background:#FCEBEB;border:1px solid #F09595;color:#791F1F">Error: '+e.message+'</div>';}
 }
 
-async function loadDPrices(){
-  await fetchPricesBatch('d',DC);
-  savePrices('d',DC);
-}
-
-function updateDStats(){setStats('d-',DC,calcMissingVal(DC));}
-function renderD(){renderGrid('d-grid',filterCards(DC,'d-s','d-fo','d-fs','d-fr','d-maxp'),'d','#85B7EB');}
-
-// FINAL FANTASY
 async function loadF(){
   FL=true;
   document.getElementById('f-grid').innerHTML='<div class="loading" style="color:#BA7517"><span class="spin"></span>Loading...</div>';
   try{
-    const sh=await fetchSheet(['Final Fantacy Binder Collection','Final Fantasy Binder Collection','FinalFantasy','']);
-    const{rows,cols}=sh;
-    const nc=cols.findIndex(k=>k.includes('name'));
-    const qc=cols.findIndex(k=>k.includes('quantity')||k.includes('own')||k.includes('have'));
-    const sc=cols.findIndex(k=>k.includes('serial')||k.includes('number')||k.includes('code'));
-    FC=rows.map(r=>{
-      const name=String(r[cols[nc>=0?nc:1]]||'').trim();
-      if(!name)return null;
-      const qty=qc>=0?r[cols[qc]]:'';
-      const owned=String(qty)==='1'||isOwned(qty);
-      const serial=sc>=0?String(r[cols[sc]]||'').trim():'';
-      // Derive rarity from serial: 1-001C -> C, 1-001L -> L
-      let rarity='';
-      if(serial){const m=serial.match(/(\d+[A-Z]{1,2})$/);if(m)rarity=m[1].replace(/[0-9]/g,'');}
-      const img=serial?'https://fftcg.square-enix-games.com/na/images/card/'+serial+'_eg.png':'';
-      return{name,owned,code:serial,rarity,set:'Opus '+serial.split('-')[0],img,price:null};
-    }).filter(Boolean);
+    const[data,binder]=await Promise.all([
+      fetchTab('FF_Data'),
+      fetchTab('Final Fantacy Binder Collection')
+    ]);
+    FC=mergeData(data.rows,data.cols,binder.rows,binder.cols);
+    setStats('f-',FC);
     populateSets('f-fs',FC);
-    await loadFPrices();
-    updateFStats();
     document.getElementById('f-sub').textContent=FC.length+' cards · '+new Date().toLocaleTimeString();
     renderF();
   }catch(e){document.getElementById('f-grid').innerHTML='<div class="error" style="background:#0c0a00;border:0.5px solid #633806;color:#EF9F27">Error: '+e.message+'</div>';}
 }
 
-async function loadFPrices(){
-  // FF not supported by JustTCG, skip pricing
-  savePrices('f',FC);
-}
-
-function updateFStats(){setStats('f-',FC,calcMissingVal(FC));}
-function renderF(){renderGrid('f-grid',filterCards(FC,'f-s','f-fo','f-fs','f-fr','f-maxp'),'f','#633806');}
-
-// RIFTBOUND
 async function loadR(){
   RL=true;
   document.getElementById('r-grid').innerHTML='<div class="loading" style="color:#7F77DD"><span class="spin"></span>Loading...</div>';
   try{
-    const[sh,api]=await Promise.all([
-      fetchSheet(['Riftbound','riftbound','Sheet3','']),
-      fetchApi('https://apitcg.com/api/riftbound/cards',20)
+    const[data,binder]=await Promise.all([
+      fetchTab('Riftbound_Data'),
+      fetchTab('Riftbound')
     ]);
-    const{rows,cols}=sh;
-    const nc=cols.findIndex(k=>k.includes('card name')||k.includes('name'));
-    const oc=cols.findIndex(k=>k.includes('owned')||k.includes('have')||k.includes('quantity'));
-    const cc=cols.findIndex(k=>k.includes('card number')||k.includes('number')||k.includes('code'));
-    const rc=cols.findIndex(k=>k.includes('rarity'));
-    const setc=cols.findIndex(k=>k.includes('set')||k.includes('expansion'));
-    const apiMap={};
-    api.forEach(c=>{apiMap[norm(c.name)]=c;if(c.code)apiMap[norm(c.code)]=c;});
-    RC=rows.filter(r=>{
-      const name=String(r[cols[nc>=0?nc:1]]||'').trim();
-      return name.length>0&&!name.match(/^[A-Z][a-z]+s?$/)||name.length>0;
-    }).map(r=>{
-      const name=String(r[cols[nc>=0?nc:1]]||'').trim();
-      if(!name||name.length<2)return null;
-      const qty=oc>=0?r[cols[oc]]:'';
-      const owned=String(qty)==='1'||isOwned(qty);
-      const code=cc>=0?String(r[cols[cc]]||'').trim():'';
-      const rarity=rc>=0?String(r[cols[rc]]||'').trim():'';
-      const set=setc>=0?String(r[cols[setc]]||'').trim():'';
-      const hit=apiMap[norm(code)]||apiMap[norm(name)]||api.find(c=>norm(c.name).includes(norm(name))&&norm(name).length>3)||null;
-      const tcgpId=hit?.tcgplayer?.id||null;
-      const img=tcgpId?'https://tcgplayer-cdn.tcgplayer.com/product/'+tcgpId+'_400w.jpg':(hit?.images?.small||'');
-      return{name,owned,code:hit?.code||code,rarity:hit?.rarity||rarity,set:hit?.set?.name||set,img,price:null,tcgpId};
-    }).filter(Boolean);
+    RC=mergeData(data.rows,data.cols,binder.rows,binder.cols);
+    setStats('r-',RC);
     populateSets('r-fs',RC);
-    await loadRPrices();
-    updateRStats();
     document.getElementById('r-sub').textContent=RC.length+' cards · '+new Date().toLocaleTimeString();
     renderR();
   }catch(e){document.getElementById('r-grid').innerHTML='<div class="error" style="background:#160b28;border:0.5px solid #3C3489;color:#AFA9EC">Error: '+e.message+'</div>';}
 }
 
-async function loadRPrices(){
-  await fetchPricesBatch('r',RC);
-  savePrices('r',RC);
-}
-
-function updateRStats(){setStats('r-',RC,calcMissingVal(RC));}
+function renderG(){renderGrid('g-grid',filterCards(GC,'g-s','g-fo','g-fs','g-fr','g-maxp'),'g','#484f58');}
+function renderD(){renderGrid('d-grid',filterCards(DC,'d-s','d-fo','d-fs','d-fr','d-maxp'),'d','#85B7EB');}
+function renderF(){renderGrid('f-grid',filterCards(FC,'f-s','f-fo','f-fs','f-fr','f-maxp'),'f','#633806');}
 function renderR(){renderGrid('r-grid',filterCards(RC,'r-s','r-fo','r-fs','r-fr','r-maxp'),'r','#3C3489');}
 
 // Boot
