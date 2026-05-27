@@ -459,7 +459,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 var SID='1WTrEW_0KgGwhSgk-KtHqptgfHCQ-gQOd0PXV9nLF1uE';
-var SCRIPT_URL='https://script.google.com/macros/s/AKfycbz8F0okJcTTQAKbwUizdTIo7_iVoneX_K9aFQsU2cN2WxBQMBsh-y52BwoYJnKQTn2r/exec';
+var SCRIPT_URL='https://script.google.com/macros/s/AKfycbyROHyhzIhHnfYDMlbZnNWLiqlF7dIlT1bodU_TLzJ0XRdMz9IJDy0L5KgYbxxY0bVY/exec';
 // No CORS proxy needed - using direct Google Sheets CSV
 var GC=[],DC=[],FC=[],RC=[];
 var GL=false,DL=false,FL=false,RL=false;
@@ -827,8 +827,8 @@ async function loadG(){
   GL=true;
   document.getElementById('g-grid').innerHTML='<div class="loading" style="color:#58a6ff"><span class="spin"></span>Syncing...</div>';
   try{
-    var results=await Promise.all([fetchTab('Gundam_Data'),fetchTab('Gundam Binder Collection')]);
-    GC=mergeData(results[0].rows,results[0].cols,results[1].rows,results[1].cols);
+    var results=await Promise.all([fetchTab('Gundam_Data')]);
+    GC=mergeData(results[0].rows,results[0].cols,[],[]);
     setStats('g-',GC);populateSets('g-fs',GC);
     document.getElementById('g-sub').textContent=GC.length+' cards';
     renderG();
@@ -839,8 +839,8 @@ async function loadD(){
   DL=true;
   document.getElementById('d-grid').innerHTML='<div class="loading" style="color:#378ADD"><span class="spin"></span>Loading...</div>';
   try{
-    var results=await Promise.all([fetchTab('Digimon_Data'),fetchTab('Digimon Binder Collection')]);
-    DC=mergeData(results[0].rows,results[0].cols,results[1].rows,results[1].cols);
+    var results=await Promise.all([fetchTab('Digimon_Data')]);
+    DC=mergeData(results[0].rows,results[0].cols,[],[]);
     setStats('d-',DC);populateSets('d-fs',DC);
     document.getElementById('d-sub').textContent=DC.length+' cards';
     renderD();
@@ -851,8 +851,8 @@ async function loadF(){
   FL=true;
   document.getElementById('f-grid').innerHTML='<div class="loading" style="color:#BA7517"><span class="spin"></span>Loading...</div>';
   try{
-    var results=await Promise.all([fetchTab('FF_Data'),fetchTab('Final Fantacy Binder Collection')]);
-    FC=mergeData(results[0].rows,results[0].cols,results[1].rows,results[1].cols);
+    var results=await Promise.all([fetchTab('FF_Data')]);
+    FC=mergeData(results[0].rows,results[0].cols,[],[]);
     setStats('f-',FC);populateSets('f-fs',FC);
     document.getElementById('f-sub').textContent=FC.length+' cards';
     renderF();
@@ -863,8 +863,8 @@ async function loadR(){
   RL=true;
   document.getElementById('r-grid').innerHTML='<div class="loading" style="color:#7F77DD"><span class="spin"></span>Loading...</div>';
   try{
-    var results=await Promise.all([fetchTab('Riftbound_Data'),fetchTab('Riftbound')]);
-    RC=mergeData(results[0].rows,results[0].cols,results[1].rows,results[1].cols);
+    var results=await Promise.all([fetchTab('Riftbound_Data')]);
+    RC=mergeData(results[0].rows,results[0].cols,[],[]);
     setStats('r-',RC);populateSets('r-fs',RC);
     document.getElementById('r-sub').textContent=RC.length+' cards';
     renderR();
