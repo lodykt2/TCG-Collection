@@ -404,7 +404,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 var SID='1WTrEW_0KgGwhSgk-KtHqptgfHCQ-gQOd0PXV9nLF1uE';
 var SCRIPT_URL='https://script.google.com/macros/s/AKfycbz8F0okJcTTQAKbwUizdTIo7_iVoneX_K9aFQsU2cN2WxBQMBsh-y52BwoYJnKQTn2r/exec';
-var CORS='https://api.allorigins.win/raw?url=';
+// No CORS proxy needed - using direct Google Sheets CSV
 var GC=[],DC=[],FC=[],RC=[];
 var GL=false,DL=false,FL=false,RL=false;
 
@@ -420,19 +420,39 @@ function sw(g){
 }
 
 async function fetchTab(tabName){
-  var base='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:json&sheet='+encodeURIComponent(tabName);
-  var r=await fetch(CORS+encodeURIComponent(base));
-  var t=await r.text();
-  var j=JSON.parse(t.replace(/^[^{]+/,'').replace(/[^}]+$/,''));
-  if(!j.table||!j.table.rows||!j.table.rows.length)return{rows:[],cols:[]};
-  var cols=j.table.cols.map(function(c){return(c.label||'').toLowerCase().trim();});
-  var rows=j.table.rows.map(function(r){
+  // Use Google Sheets CSV export - no CORS proxy needed, works in all browsers
+  var url='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(tabName);
+  var r=await fetch(url,{mode:'cors'});
+  var text=await r.text();
+  // Parse CSV
+  var lines=text.split('\n').filter(function(l){return l.trim();});
+  if(lines.length<2)return{rows:[],cols:[]};
+  var cols=parseCSVLine(lines[0]).map(function(c){return c.toLowerCase().trim();});
+  var rows=lines.slice(1).map(function(line){
+    var vals=parseCSVLine(line);
     var o={};
-    if(r.c)r.c.forEach(function(c,i){o[cols[i]]=c&&c.v!==null?c.v:'';});
+    cols.forEach(function(col,i){o[col]=vals[i]||'';});
     return o;
-  }).filter(function(r){return Object.values(r).some(function(v){return v!==''&&v!==null;});});
+  }).filter(function(r){return Object.values(r).some(function(v){return v!=='';});});
   console.log('fetchTab '+tabName+': rows='+rows.length+' cols='+JSON.stringify(cols));
   return{rows:rows,cols:cols};
+}
+
+function parseCSVLine(line){
+  var result=[],cur='',inQ=false;
+  for(var i=0;i<line.length;i++){
+    var ch=line[i];
+    if(ch==='"'){
+      if(inQ&&line[i+1]==='"'){cur+='"';i++;}
+      else inQ=!inQ;
+    } else if(ch===','&&!inQ){
+      result.push(cur.trim());cur='';
+    } else {
+      cur+=ch;
+    }
+  }
+  result.push(cur.trim());
+  return result;
 }
 
 function mergeData(dataRows,dataCols,binderRows,binderCols){
@@ -588,7 +608,12 @@ function toggleOwned(game,name,code){
   else if(game==='d'){setStats('d-',DC);renderD();}
   else if(game==='f'){setStats('f-',FC);renderF();}
   else{setStats('r-',RC);renderR();}
-  fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'toggle',tab:tabs[game],name:name})}).catch(function(){});
+  fetch(SCRIPT_URL,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'toggle',tab:tabs[game],name:name})
+  }).catch(function(){});
 }
 
 async function loadG(){
