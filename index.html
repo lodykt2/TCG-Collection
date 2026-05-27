@@ -551,9 +551,19 @@ function cardHtml(c,p){
 }
 
 function renderGrid(id,cards,p,emColor){
-  document.getElementById(id).innerHTML=cards.length
-    ?'<div class="'+p+'p grid">'+cards.map(c=>cardHtml(c,p)).join('')+'</div>'
-    :'<div class="empty" style="color:'+emColor+'">No cards match.</div>';
+  const container=document.getElementById(id);
+  container.innerHTML='';
+  if(!cards.length){
+    container.innerHTML='<div class="empty" style="color:'+emColor+'">No cards match.</div>';
+    return;
+  }
+  const grid=document.createElement('div');
+  grid.className=p+'p grid';
+  cards.forEach(c=>{
+    const el=cardHtml(c,p);
+    grid.appendChild(el);
+  });
+  container.appendChild(grid);
 }
 
 // ── Toggle owned & sync to sheet ────────────────────────────
