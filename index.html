@@ -486,6 +486,16 @@ function baseName(name){
 }
 
 function mergeData(dataRows,dataCols,binderRows,binderCols){
+  // Debug: log first few rows to check column mapping
+  console.log('dataCols:', JSON.stringify(dataCols));
+  if(dataRows.length>0){
+    console.log('First data row col4 (image):', JSON.stringify(dataRows[0][dataCols[4]]));
+    console.log('First data row col5 (price):', JSON.stringify(dataRows[0][dataCols[5]]));
+  }
+  // Find a row with pipe-separated image to verify parsing
+  var pipeRow = dataRows.find(function(r){return String(r[dataCols[4]]||'').indexOf('|')!==-1;});
+  if(pipeRow) console.log('PIPE ROW FOUND:', JSON.stringify(pipeRow[dataCols[4]]).substring(0,100));
+  else console.log('NO pipe-separated images found in data');
   var ownedMap={};
   var bNameCol=binderCols.findIndex(function(k){return k.includes('name');});
   var bCodeCol=binderCols.findIndex(function(k){return k.includes('card no')||k.includes('serial')||k.includes('number');});
@@ -506,33 +516,55 @@ function mergeData(dataRows,dataCols,binderRows,binderCols){
     var name=String(r[dataCols[1]]||'').trim();
     var set=String(r[dataCols[2]]||'').trim();
     var rarity=String(r[dataCols[3]]||'').trim();
-    var img=String(r[dataCols[4]]||'').trim();
+    var imgRaw=String(r[dataCols[4]]||'').trim();
+    // Handle pipe-separated multiple image URLs written by mergeAll script
+    var imgList=imgRaw.split('|').map(function(s){return s.trim();}).filter(Boolean);
+    var img=imgList[0]||'';
     var price=parseFloat(r[dataCols[5]])||null;
     var priceChange=String(r[dataCols[7]]||'').trim();
     var owned=ownedMap[name.toLowerCase()]||ownedMap[code.toLowerCase()]||false;
-    return{code:code,name:name,set:set,rarity:rarity,img:img,price:price,priceChange:priceChange,owned:owned};
+    return{code:code,name:name,set:set,rarity:rarity,img:img,imgs:imgList,price:price,priceChange:priceChange,owned:owned};
   }).filter(function(c){return c.name&&isCardProduct(c.name);});
 
-  // Second pass: deduplicate variants - group by base name + set + rarity
-  // Keep lowest price, first image, collect all images
+  // Second pass: deduplicate - group by card CODE (primary) or base name+rarity (fallback)
+  // Keep lowest VALID price, collect all images
   var grouped={};
   raw.forEach(function(c){
-    var key=baseName(c.name).toLowerCase()+'|'+c.set+'|'+c.rarity;
+    // Sanity check price - ignore obviously wrong values
+    var price=c.price;
+    if(price&&(price>9999||price<0))price=null;
+
+    // Group key: prefer card code, fallback to base name + rarity
+    var key=c.code?c.code.toLowerCase():baseName(c.name).toLowerCase()+'|'+c.rarity;
     if(!grouped[key]){
       grouped[key]={
-        code:c.code,name:baseName(c.name)||c.name,set:c.set,rarity:c.rarity,
-        imgs:[],price:null,priceChange:c.priceChange,owned:c.owned,
+        code:c.code,
+        name:baseName(c.name)||c.name,
+        set:c.set,
+        rarity:c.rarity,
+        imgs:[],
+        price:null,
+        priceChange:c.priceChange,
+        owned:c.owned,
         variants:[]
       };
     }
     var g=grouped[key];
-    // Collect all images
-    if(c.img&&g.imgs.indexOf(c.img)===-1)g.imgs.push(c.img);
-    // Keep lowest price
-    if(c.price&&(!g.price||c.price<g.price)){g.price=c.price;g.priceChange=c.priceChange;}
+    // Collect unique images from all variants (handles pipe-separated lists)
+    var allImgs=c.imgs&&c.imgs.length?c.imgs:(c.img?[c.img]:[]);
+    allImgs.forEach(function(url){
+      if(url&&g.imgs.indexOf(url)===-1)g.imgs.push(url);
+    });
+    // Keep lowest valid price
+    if(price&&(!g.price||price<g.price)){
+      g.price=price;
+      g.priceChange=c.priceChange;
+    }
     // owned if any variant owned
     if(c.owned)g.owned=true;
     g.variants.push(c.name);
+    // Use most common set name (first one)
+    if(!g.set&&c.set)g.set=c.set;
   });
 
   return Object.values(grouped);
