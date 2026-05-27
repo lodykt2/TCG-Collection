@@ -49,7 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .gp .fi::placeholder{color:#484f58;}
 .gp .fi option{background:#161b22;}
 .gp .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:8px;}
-.gp .card{background:#161b22;border:0.5px solid #21262d;border-radius:7px;overflow:hidden;cursor:pointer;transition:all .15s;}
+.gp .card{overflow:visible;background:#161b22;border:0.5px solid #21262d;border-radius:7px;overflow:hidden;cursor:pointer;transition:all .15s;}
 .gp .card:hover{border-color:#388bfd55;transform:translateY(-1px);}
 .gp .card.owned{border-color:#388bfd55;}
 .gp .cimg{position:relative;width:100%;aspect-ratio:2/3;background:#0d1117;display:flex;align-items:center;justify-content:center;overflow:hidden;}
@@ -96,7 +96,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .dp .fi{height:28px;font-size:11px;padding:0 8px;background:#fff;border:1px solid #B5D4F4;border-radius:5px;color:#0C447C;outline:none;flex:1;min-width:100px;}
 .dp .fi::placeholder{color:#85B7EB;}
 .dp .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:8px;}
-.dp .card{background:#fff;border:1px solid #B5D4F4;border-radius:7px;overflow:hidden;cursor:pointer;transition:all .15s;}
+.dp .card{overflow:visible;background:#fff;border:1px solid #B5D4F4;border-radius:7px;overflow:hidden;cursor:pointer;transition:all .15s;}
 .dp .card:hover{border-color:#378ADD;transform:translateY(-1px);}
 .dp .card.owned{border-color:#378ADD;}
 .dp .cimg{position:relative;width:100%;aspect-ratio:2/3;background:#E6F1FB;display:flex;align-items:center;justify-content:center;overflow:hidden;}
@@ -145,7 +145,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fp .fi::placeholder{color:#633806;}
 .fp .fi option{background:#1a1030;}
 .fp .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:8px;}
-.fp .card{background:#1a1030;border:0.5px solid #412402;border-radius:7px;overflow:hidden;cursor:pointer;transition:all .15s;}
+.fp .card{overflow:visible;background:#1a1030;border:0.5px solid #412402;border-radius:7px;overflow:hidden;cursor:pointer;transition:all .15s;}
 .fp .card:hover{border-color:#BA751744;transform:translateY(-1px);}
 .fp .card.owned{border-color:#BA751766;}
 .fp .cimg{position:relative;width:100%;aspect-ratio:2/3;background:#0c0a14;display:flex;align-items:center;justify-content:center;overflow:hidden;}
@@ -194,7 +194,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .rp .fi::placeholder{color:#3C3489;}
 .rp .fi option{background:#1a0f2a;}
 .rp .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(115px,1fr));gap:8px;}
-.rp .card{background:#1a0f2a;border:0.5px solid #2d1f4a;border-radius:7px;overflow:hidden;cursor:pointer;transition:all .15s;}
+.rp .card{overflow:visible;background:#1a0f2a;border:0.5px solid #2d1f4a;border-radius:7px;overflow:hidden;cursor:pointer;transition:all .15s;}
 .rp .card:hover{border-color:#7F77DD55;transform:translateY(-1px);}
 .rp .card.owned{border-color:#7F77DD55;}
 .rp .cimg{position:relative;width:100%;aspect-ratio:2/3;background:#0e0a1a;display:flex;align-items:center;justify-content:center;overflow:hidden;}
@@ -240,17 +240,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card .popup {
   display: none;
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 6px);
   left: 50%; transform: translateX(-50%);
-  width: 200px;
+  width: 190px;
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 11px;
-  z-index: 100;
+  z-index: 999;
   pointer-events: none;
-  line-height: 1.5;
+  line-height: 1.6;
   white-space: normal;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
+.card { overflow: visible !important; }
 .card:hover .popup { display: block; }
 .gp .card .popup { background: #161b22; border: 0.5px solid #30363d; color: #c9d1d9; }
 .dp .card .popup { background: #fff; border: 1px solid #B5D4F4; color: #0C447C; }
@@ -340,6 +342,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option value="">All rarities</option><option>LR</option><option>R</option><option>U</option><option>C</option>
           </select>
           <input class="fi" type="number" id="g-maxp" placeholder="Max price $" oninput="renderG()" style="max-width:100px">
+          <button class="export-btn" onclick="exportMissing('g')" title="Export missing cards">&#11015; Export missing</button>
         </div>
         <div id="g-grid"><div class="loading" style="color:#58a6ff"><span class="spin"></span>Initializing...</div></div>
       </div>
@@ -377,6 +380,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option>Rare</option><option>Uncommon</option><option>Common</option><option>Promo</option>
           </select>
           <input class="fi" type="number" id="d-maxp" placeholder="Max price $" oninput="renderD()" style="max-width:100px">
+          <button class="export-btn" onclick="exportMissing('d')" title="Export missing cards">&#11015; Export missing</button>
         </div>
         <div id="d-grid"><div class="loading" style="color:#378ADD"><span class="spin"></span>Loading...</div></div>
       </div>
@@ -414,6 +418,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option value="S">Special (S)</option><option value="PR">Promo (PR)</option>
           </select>
           <input class="fi" type="number" id="f-maxp" placeholder="Max price $" oninput="renderF()" style="max-width:100px">
+          <button class="export-btn" onclick="exportMissing('f')" title="Export missing cards">&#11015; Export missing</button>
         </div>
         <div id="f-grid"><div class="loading" style="color:#BA7517"><span class="spin"></span>Loading...</div></div>
       </div>
@@ -449,6 +454,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option>Epic</option><option>Rare</option><option>Uncommon</option><option>Common</option>
           </select>
           <input class="fi" type="number" id="r-maxp" placeholder="Max price $" oninput="renderR()" style="max-width:100px">
+          <button class="export-btn" onclick="exportMissing('r')" title="Export missing cards">&#11015; Export missing</button>
         </div>
         <div id="r-grid"><div class="loading" style="color:#7F77DD"><span class="spin"></span>Loading...</div></div>
       </div>
@@ -721,23 +727,24 @@ function makeCard(c,p){
   var cbodyDiv=document.createElement('div');
   cbodyDiv.className='cbody';
 
-  // Build popup HTML with full card info
-  var popupHtml='<div class="popup">'
-    +'<div class="popup-name">'+c.name+'</div>'
-    +(c.code?'<div class="popup-row"><span class="popup-label">Code</span><span>'+c.code+'</span></div>':'')
-    +(c.set?'<div class="popup-row"><span class="popup-label">Set</span><span>'+c.set+'</span></div>':'')
-    +(c.rarity?'<div class="popup-row"><span class="popup-label">Rarity</span><span>'+c.rarity+'</span></div>':'')
-    +(c.price?'<div class="popup-row"><span class="popup-label">Price</span><span>$'+c.price.toFixed(2)+'</span></div>':'')
-    +'<div class="popup-row"><span class="popup-label">Status</span><span class="'+(c.owned?'popup-status-owned':'popup-status-missing')+'">'+(c.owned?'Owned':'Missing')+'</span></div>'
-    +'</div>';
 
-  cbodyDiv.innerHTML=popupHtml
-    +'<div class="cname">'+c.name+'</div>'
+
+  cbodyDiv.innerHTML='<div class="cname">'+c.name+'</div>'
     +'<div class="crow"><span class="ccode">'+c.code+'</span>'+(c.rarity?'<span class="rar rar-'+rarCls+'">'+c.rarity+'</span>':'')+'</div>'
     +(c.set?'<div class="cset">'+c.set+'</div>':'')
     +priceDiv
     +'<a class="ctcg" href="'+tcgUrl+'" target="_blank" rel="noopener">$ TCGPlayer</a>';
 
+  // Popup must be direct child of card (not inside cimg) to escape overflow
+  var popupEl=document.createElement('div');
+  popupEl.className='popup';
+  popupEl.innerHTML='<div class="popup-name">'+c.name+'</div>'
+    +(c.code?'<div class="popup-row"><span class="popup-label">Code</span><span>'+c.code+'</span></div>':'')
+    +(c.set?'<div class="popup-row"><span class="popup-label">Set</span><span>'+c.set+'</span></div>':'')
+    +(c.rarity?'<div class="popup-row"><span class="popup-label">Rarity</span><span>'+c.rarity+'</span></div>':'')
+    +(c.price?'<div class="popup-row"><span class="popup-label">Price</span><span>$'+c.price.toFixed(2)+'</span></div>':'')
+    +'<div class="popup-row"><span class="popup-label">Status</span><span class="'+(c.owned?'popup-status-owned':'popup-status-missing')+'">'+(c.owned?'Owned':'Missing')+'</span></div>';
+  el.appendChild(popupEl);
   el.appendChild(cimgDiv);
   el.appendChild(cbodyDiv);
 
