@@ -409,9 +409,6 @@ const CORS='https://corsproxy.io/?url=';
 let GC=[],DC=[],FC=[],RC=[];
 let GL=false,DL=false,FL=false,RL=false;
 
-// Price history for change indicator (persisted in localStorage)
-const priceHistory=JSON.parse(localStorage.getItem('tcg_ph')||'{}');
-
 function sw(g){
   ['g','d','f','r'].forEach(x=>{
     document.getElementById('pane-'+x).classList.toggle('active',x===g);
@@ -424,43 +421,36 @@ function sw(g){
   if(g==='r'&&!RL)loadR();
 }
 
-// ── Fetch a sheet tab via gviz ──────────────────────────────
 async function fetchTab(tabName){
   const base='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:json&sheet='+encodeURIComponent(tabName);
-  const url=CORS+encodeURIComponent(base);
-  const r=await fetch(url);
+  const r=await fetch(CORS+encodeURIComponent(base));
   const t=await r.text();
-  const j=JSON.parse(t.replace(/^[^\{]+/,'').replace(/[^\}]+$/,''));
-  if(!j.table||!j.table.rows||!j.table.rows.length) return{rows:[],cols:[]};
+  const j=JSON.parse(t.replace(/^[^{]+/,'').replace(/[^}]+$/,''));
+  if(!j.table||!j.table.rows||!j.table.rows.length)return{rows:[],cols:[]};
   const cols=j.table.cols.map(c=>(c.label||'').toLowerCase().trim());
   const rows=j.table.rows.map(r=>{
     const o={};
     r.c&&r.c.forEach((c,i)=>{o[cols[i]]=c&&c.v!==null?c.v:'';});
     return o;
-  }).filter(r=>Object.values(r).some(v=>v!==''&&v!==null&&v!==undefined));
+  }).filter(r=>Object.values(r).some(v=>v!==''&&v!==null));
   return{rows,cols};
 }
 
-// ── Merge data tab + binder tab ─────────────────────────────
-// Data tab columns: Card Code | Card Name | Set | Rarity | Image URL | Current Price | Previous Price | Price Change | Last Updated
-// Binder tab: contains owned/quantity status per card
-function mergeData(dataRows, dataCols, binderRows, binderCols){
-  // Build owned map from binder: key=cardCode or cardName → owned bool
+function mergeData(dataRows,dataCols,binderRows,binderCols){
   const ownedMap={};
   const bNameCol=binderCols.findIndex(k=>k.includes('name'));
-  const bCodeCol=binderCols.findIndex(k=>k.includes('card no')||k.includes('card number')||k.includes('serial')||k.includes('number'));
-  const bOwnCol=binderCols.findIndex(k=>k.includes('own')||k.includes('quantity')||k.includes('have'));
+  const bCodeCol=binderCols.findIndex(k=>k.includes('card no')||k.includes('serial')||k.includes('number'));
+  const bOwnCol=binderCols.findIndex(k=>k.includes('own')||k.includes('quantity'));
 
   binderRows.forEach(r=>{
     const name=String(r[binderCols[bNameCol>=0?bNameCol:0]]||'').trim().toLowerCase();
     const code=bCodeCol>=0?String(r[binderCols[bCodeCol]]||'').trim().toLowerCase():'';
     const qty=bOwnCol>=0?r[binderCols[bOwnCol]]:'';
     const owned=String(qty).trim()==='1'||String(qty).trim().toLowerCase()==='yes';
-    if(name) ownedMap[name]=owned;
-    if(code) ownedMap[code]=owned;
+    if(name)ownedMap[name]=owned;
+    if(code)ownedMap[code]=owned;
   });
 
-  // Map data rows
   return dataRows.map(r=>{
     const code=String(r[dataCols[0]]||'').trim();
     const name=String(r[dataCols[1]]||'').trim();
@@ -470,27 +460,23 @@ function mergeData(dataRows, dataCols, binderRows, binderCols){
     const price=parseFloat(r[dataCols[5]])||null;
     const prevPrice=parseFloat(r[dataCols[6]])||null;
     const priceChange=String(r[dataCols[7]]||'').trim();
-
-    // Check owned by name or code
     const owned=ownedMap[name.toLowerCase()]||ownedMap[code.toLowerCase()]||false;
-
     return{code,name,set,rarity,img,price,prevPrice,priceChange,owned};
   }).filter(c=>c.name);
 }
 
-// ── Stats ───────────────────────────────────────────────────
 function setStats(p,cards){
   const o=cards.filter(c=>c.owned).length;
   const t=cards.length;
   const pct=t?Math.round(o/t*100):0;
-  const missingVal=cards.filter(c=>!c.owned&&c.price).reduce((s,c)=>s+c.price,0);
+  const mv=cards.filter(c=>!c.owned&&c.price).reduce((s,c)=>s+c.price,0);
   document.getElementById(p+'total').textContent=t;
   document.getElementById(p+'owned').textContent=o;
   document.getElementById(p+'miss').textContent=t-o;
   document.getElementById(p+'pct').textContent=pct+'%';
   document.getElementById(p+'pct2').textContent=pct+'%';
   document.getElementById(p+'bar').style.width=pct+'%';
-  document.getElementById(p+'val').textContent=missingVal>0?'$'+missingVal.toFixed(2):'—';
+  document.getElementById(p+'val').textContent=mv>0?'$'+mv.toFixed(2):'—';
 }
 
 function populateSets(selId,cards){
@@ -498,7 +484,6 @@ function populateSets(selId,cards){
   document.getElementById(selId).innerHTML='<option value="">All sets</option>'+sets.map(s=>'<option value="'+s+'">'+s+'</option>').join('');
 }
 
-// ── Filter ──────────────────────────────────────────────────
 function filterCards(cards,si,oi,ssi,ri,pi){
   const q=document.getElementById(si).value.toLowerCase();
   const fo=document.getElementById(oi).value;
@@ -516,38 +501,44 @@ function filterCards(cards,si,oi,ssi,ri,pi){
   });
 }
 
-// ── Card HTML ───────────────────────────────────────────────
-function cardHtml(c,p){
+function makeCard(c,p){
+  const el=document.createElement('div');
+  el.className='card'+(c.owned?' owned':'');
+  el.title='Click to toggle owned/missing';
+
   const rarCls=(c.rarity||'').replace(/\s+/g,'.').replace(/[^a-zA-Z0-9.]/g,'');
   const tcgGame=p==='g'?'gundam-card-game':p==='d'?'digimon-card-game':p==='f'?'final-fantasy-tcg':'riftbound-league-of-legends-trading-card-game';
   const tcgUrl='https://www.tcgplayer.com/search/'+tcgGame+'/product?q='+encodeURIComponent(c.name);
-  const scan=p==='g'?'<div class="scan-line"></div>':'';
 
-  // Price change indicator
   let priceHtml='';
   if(c.price){
-    let chgHtml='';
-    if(c.priceChange&&c.priceChange!==''){
+    let chg='';
+    if(c.priceChange){
       const up=c.priceChange.startsWith('+');
-      chgHtml='<span class="chg-'+(up?'up':'dn')+'">'+(up?'▲':'▼')+' '+c.priceChange.replace(/[+-]/,'')+'</span>';
+      chg='<span class="chg-'+(up?'up':'dn')+'">'+(up?'▲':'▼')+' '+c.priceChange.replace(/^[+-]/,'')+'</span>';
     }
-    priceHtml='<div class="cprice">$'+c.price.toFixed(2)+chgHtml+'</div>';
+    priceHtml='<div class="cprice">$'+c.price.toFixed(2)+chg+'</div>';
   }
 
-  return'<div class="card '+(c.owned?'owned':'')+'" onclick="toggleOwned(''+p+'',''+c.name.replace(/\/g,'\\').replace(/'/g,"\'")+'',''+c.code.replace(/'/g,"\'")+'')" title="Click to toggle owned/missing">'
-    +'<div class="cimg">'
-    +scan
-    +(c.img?'<img src="'+c.img+'" alt="'+c.name+'" loading="lazy" onerror="this.style.display='none'">'
-        :'<span class="ghost">'+(p==='g'?'⬡':p==='d'?'◉':p==='f'?'✦':'◆')+'</span>')
-    +'<div class="badge '+(c.owned?'ob':'mb')+'">'+(c.owned?'✓':'○')+'</div>'
-    +'</div>'
+  const imgHtml=c.img
+    ? '<img src="'+c.img+'" alt="" loading="lazy" onerror="this.style.display='none'">'
+    : '<span class="ghost">'+(p==='g'?'⬡':p==='d'?'◉':p==='f'?'✦':'◆')+'</span>';
+
+  el.innerHTML=(p==='g'?'<div class="scan-line"></div>':'')
+    +'<div class="cimg">'+imgHtml+'<div class="badge '+(c.owned?'ob':'mb')+'">'+(c.owned?'✓':'○')+'</div></div>'
     +'<div class="cbody">'
-    +'<div class="cname" title="'+c.name+'">'+c.name+'</div>'
+    +'<div class="cname">'+c.name+'</div>'
     +'<div class="crow"><span class="ccode">'+c.code+'</span>'+(c.rarity?'<span class="rar rar-'+rarCls+'">'+c.rarity+'</span>':'')+'</div>'
-    +(c.set?'<div class="cset" title="'+c.set+'">'+c.set+'</div>':'')
+    +(c.set?'<div class="cset">'+c.set+'</div>':'')
     +priceHtml
-    +'<a class="ctcg" href="'+tcgUrl+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">$ TCGPlayer</a>'
-    +'</div></div>';
+    +'<a class="ctcg" href="'+tcgUrl+'" target="_blank" rel="noopener">$ TCGPlayer</a>'
+    +'</div>';
+
+  el.addEventListener('click',function(e){
+    if(e.target.closest('a'))return;
+    toggleOwned(p,c.name,c.code);
+  });
+  return el;
 }
 
 function renderGrid(id,cards,p,emColor){
@@ -559,97 +550,69 @@ function renderGrid(id,cards,p,emColor){
   }
   const grid=document.createElement('div');
   grid.className=p+'p grid';
-  cards.forEach(c=>{
-    const el=cardHtml(c,p);
-    grid.appendChild(el);
-  });
+  cards.forEach(c=>grid.appendChild(makeCard(c,p)));
   container.appendChild(grid);
 }
 
-// ── Toggle owned & sync to sheet ────────────────────────────
 function toggleOwned(game,name,code){
   const arr=game==='g'?GC:game==='d'?DC:game==='f'?FC:RC;
   const c=arr.find(x=>x.name===name||(code&&x.code===code));
   if(!c)return;
   c.owned=!c.owned;
   const tab=game==='g'?'Gundam Binder Collection':game==='d'?'Digimon Binder Collection':game==='f'?'Final Fantacy Binder Collection':'Riftbound';
-
   if(game==='g'){setStats('g-',GC);renderG();}
   else if(game==='d'){setStats('d-',DC);renderD();}
   else if(game==='f'){setStats('f-',FC);renderF();}
   else{setStats('r-',RC);renderR();}
-
-  // Sync to Google Sheet via Apps Script
-  fetch(SCRIPT_URL,{
-    method:'POST',
-    body:JSON.stringify({action:'toggle',tab:tab,name:name}),
-    headers:{'Content-Type':'application/json'}
-  }).catch(e=>console.warn('Sheet sync failed:',e));
+  fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'toggle',tab:tab,name:name})}).catch(()=>{});
 }
 
-// ── Load functions ───────────────────────────────────────────
 async function loadG(){
   GL=true;
   document.getElementById('g-grid').innerHTML='<div class="loading" style="color:#58a6ff"><span class="spin"></span>Syncing...</div>';
   try{
-    const[data,binder]=await Promise.all([
-      fetchTab('Gundam_Data'),
-      fetchTab('Gundam Binder Collection')
-    ]);
+    const[data,binder]=await Promise.all([fetchTab('Gundam_Data'),fetchTab('Gundam Binder Collection')]);
     GC=mergeData(data.rows,data.cols,binder.rows,binder.cols);
-    setStats('g-',GC);
-    populateSets('g-fs',GC);
+    setStats('g-',GC);populateSets('g-fs',GC);
     document.getElementById('g-sub').textContent=GC.length+' cards · '+new Date().toLocaleTimeString();
     renderG();
-  }catch(e){document.getElementById('g-grid').innerHTML='<div class="error" style="background:#160b0b;border:0.5px solid #6e1a1a;color:#f85149">Error: '+e.message+'</div>';}
+  }catch(e){document.getElementById('g-grid').innerHTML='<div class="error" style="background:#160b0b;border:0.5px solid #6e1a1a;color:#f85149">'+e.message+'</div>';}
 }
 
 async function loadD(){
   DL=true;
   document.getElementById('d-grid').innerHTML='<div class="loading" style="color:#378ADD"><span class="spin"></span>Loading...</div>';
   try{
-    const[data,binder]=await Promise.all([
-      fetchTab('Digimon_Data'),
-      fetchTab('Digimon Binder Collection')
-    ]);
+    const[data,binder]=await Promise.all([fetchTab('Digimon_Data'),fetchTab('Digimon Binder Collection')]);
     DC=mergeData(data.rows,data.cols,binder.rows,binder.cols);
-    setStats('d-',DC);
-    populateSets('d-fs',DC);
+    setStats('d-',DC);populateSets('d-fs',DC);
     document.getElementById('d-sub').textContent=DC.length+' cards · '+new Date().toLocaleTimeString();
     renderD();
-  }catch(e){document.getElementById('d-grid').innerHTML='<div class="error" style="background:#FCEBEB;border:1px solid #F09595;color:#791F1F">Error: '+e.message+'</div>';}
+  }catch(e){document.getElementById('d-grid').innerHTML='<div class="error" style="background:#FCEBEB;border:1px solid #F09595;color:#791F1F">'+e.message+'</div>';}
 }
 
 async function loadF(){
   FL=true;
   document.getElementById('f-grid').innerHTML='<div class="loading" style="color:#BA7517"><span class="spin"></span>Loading...</div>';
   try{
-    const[data,binder]=await Promise.all([
-      fetchTab('FF_Data'),
-      fetchTab('Final Fantacy Binder Collection')
-    ]);
+    const[data,binder]=await Promise.all([fetchTab('FF_Data'),fetchTab('Final Fantacy Binder Collection')]);
     FC=mergeData(data.rows,data.cols,binder.rows,binder.cols);
-    setStats('f-',FC);
-    populateSets('f-fs',FC);
+    setStats('f-',FC);populateSets('f-fs',FC);
     document.getElementById('f-sub').textContent=FC.length+' cards · '+new Date().toLocaleTimeString();
     renderF();
-  }catch(e){document.getElementById('f-grid').innerHTML='<div class="error" style="background:#0c0a00;border:0.5px solid #633806;color:#EF9F27">Error: '+e.message+'</div>';}
+  }catch(e){document.getElementById('f-grid').innerHTML='<div class="error" style="background:#0c0a00;border:0.5px solid #633806;color:#EF9F27">'+e.message+'</div>';}
 }
 
 async function loadR(){
   RL=true;
   document.getElementById('r-grid').innerHTML='<div class="loading" style="color:#7F77DD"><span class="spin"></span>Loading...</div>';
   try{
-    const[data,binder]=await Promise.all([
-      fetchTab('Riftbound_Data'),
-      fetchTab('Riftbound')
-    ]);
+    const[data,binder]=await Promise.all([fetchTab('Riftbound_Data'),fetchTab('Riftbound')]);
     RC=mergeData(data.rows,data.cols,binder.rows,binder.cols);
-    setStats('r-',RC);
-    populateSets('r-fs',RC);
+    setStats('r-',RC);populateSets('r-fs',RC);
     document.getElementById('r-sub').textContent=RC.length+' cards · '+new Date().toLocaleTimeString();
     renderR();
-  }catch(e){document.getElementById('r-grid').innerHTML='<div class="error" style="background:#160b28;border:0.5px solid #3C3489;color:#AFA9EC">Error: '+e.message+'</div>';}
+  }catch(e){document.getElementById('r-grid').innerHTML='<div class="error" style="background:#160b28;border:0.5px solid #3C3489;color:#AFA9EC">'+e.message+'</div>';}
 }
 
 function renderG(){renderGrid('g-grid',filterCards(GC,'g-s','g-fo','g-fs','g-fr','g-maxp'),'g','#484f58');}
@@ -657,7 +620,6 @@ function renderD(){renderGrid('d-grid',filterCards(DC,'d-s','d-fo','d-fs','d-fr'
 function renderF(){renderGrid('f-grid',filterCards(FC,'f-s','f-fo','f-fs','f-fr','f-maxp'),'f','#633806');}
 function renderR(){renderGrid('r-grid',filterCards(RC,'r-s','r-fo','r-fs','r-fr','r-maxp'),'r','#3C3489');}
 
-// Boot
 loadG();
 </script>
 </body>
