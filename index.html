@@ -220,6 +220,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .rp .ctcg{display:flex;align-items:center;gap:2px;font-size:9px;color:#7F77DD;text-decoration:none;opacity:.8;}
 .rp .ctcg:hover{opacity:1;}
 
+.vbadge{position:absolute;bottom:5px;left:5px;background:rgba(0,0,0,.7);color:#fff;font-size:9px;padding:2px 5px;border-radius:3px;pointer-events:none;}
 /* SHARED */
 .loading{text-align:center;padding:3rem 0;font-size:13px;}
 .loading .spin{display:inline-block;width:22px;height:22px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin 0.8s linear infinite;margin-right:6px;vertical-align:middle;}
@@ -455,14 +456,41 @@ function parseCSVLine(line){
   return result;
 }
 
+// Non-card product keywords to filter out
+var NON_CARD_KW=[
+  'booster box','booster pack','box case','display case','display box',
+  'sleeved booster','sealed','bundle','gift set','elite trainer',
+  'collection box','tin','accessory','playmat','sleeves','deck box',
+  'storage box','promo pack','code card','online code','lot ',
+  'champion deck','starter deck','starter set','pre-rift','nexus night',
+  'pre-release','event kit','kit','tournament kit','supply kit',
+  'worlds bundle','collector kit','booster bundle','theme deck',
+  'battle deck','structure deck','card box','card sleeves'
+];
+
+function isCardProduct(name){
+  var n=(name||'').toLowerCase();
+  // Filter known non-card keywords
+  if(NON_CARD_KW.some(function(kw){return n.indexOf(kw)!==-1;}))return false;
+  // Filter if contains box/pack/kit/bundle/deck without being a single card
+  if(/\b(box|pack|kit|bundle|deck|case|display|sleeve)\b/i.test(n)&&!/\bcard\b/i.test(n))return false;
+  return true;
+}
+
+// Get base card name by stripping variant suffixes
+function baseName(name){
+  return name
+    .replace(/\s*-\s*(alternate art|alt art|full art|extended art|borderless|rainbow|gold|foil|holo|promo|showcase|special|secret|sr|ur|lr|r\+|lr\+|c\+|u\+|sr\+).*$/i,'')
+    .replace(/\s*\(.*?\)\s*$/,'') // remove trailing parenthetical
+    .trim();
+}
+
 function mergeData(dataRows,dataCols,binderRows,binderCols){
-  console.log('mergeData: dataRows='+dataRows.length+' dataCols='+JSON.stringify(dataCols));
-  console.log('mergeData: binderRows='+binderRows.length+' binderCols='+JSON.stringify(binderCols));
   var ownedMap={};
   var bNameCol=binderCols.findIndex(function(k){return k.includes('name');});
   var bCodeCol=binderCols.findIndex(function(k){return k.includes('card no')||k.includes('serial')||k.includes('number');});
   var bOwnCol=binderCols.findIndex(function(k){return k.includes('own')||k.includes('quantity');});
-  console.log('mergeData: bNameCol='+bNameCol+' bCodeCol='+bCodeCol+' bOwnCol='+bOwnCol);
+
   binderRows.forEach(function(r){
     var name=String(r[binderCols[bNameCol>=0?bNameCol:0]]||'').trim().toLowerCase();
     var code=bCodeCol>=0?String(r[binderCols[bCodeCol]]||'').trim().toLowerCase():'';
@@ -471,7 +499,9 @@ function mergeData(dataRows,dataCols,binderRows,binderCols){
     if(name)ownedMap[name]=owned;
     if(code)ownedMap[code]=owned;
   });
-  return dataRows.map(function(r){
+
+  // First pass: build raw list, filter non-cards
+  var raw=dataRows.map(function(r){
     var code=String(r[dataCols[0]]||'').trim();
     var name=String(r[dataCols[1]]||'').trim();
     var set=String(r[dataCols[2]]||'').trim();
@@ -481,7 +511,31 @@ function mergeData(dataRows,dataCols,binderRows,binderCols){
     var priceChange=String(r[dataCols[7]]||'').trim();
     var owned=ownedMap[name.toLowerCase()]||ownedMap[code.toLowerCase()]||false;
     return{code:code,name:name,set:set,rarity:rarity,img:img,price:price,priceChange:priceChange,owned:owned};
-  }).filter(function(c){return c.name;});
+  }).filter(function(c){return c.name&&isCardProduct(c.name);});
+
+  // Second pass: deduplicate variants - group by base name + set + rarity
+  // Keep lowest price, first image, collect all images
+  var grouped={};
+  raw.forEach(function(c){
+    var key=baseName(c.name).toLowerCase()+'|'+c.set+'|'+c.rarity;
+    if(!grouped[key]){
+      grouped[key]={
+        code:c.code,name:baseName(c.name)||c.name,set:c.set,rarity:c.rarity,
+        imgs:[],price:null,priceChange:c.priceChange,owned:c.owned,
+        variants:[]
+      };
+    }
+    var g=grouped[key];
+    // Collect all images
+    if(c.img&&g.imgs.indexOf(c.img)===-1)g.imgs.push(c.img);
+    // Keep lowest price
+    if(c.price&&(!g.price||c.price<g.price)){g.price=c.price;g.priceChange=c.priceChange;}
+    // owned if any variant owned
+    if(c.owned)g.owned=true;
+    g.variants.push(c.name);
+  });
+
+  return Object.values(grouped);
 }
 
 function setStats(p,cards){
@@ -549,11 +603,31 @@ function makeCard(c,p){
   cimgDiv.className='cimg';
   if(p==='g'){var sl=document.createElement('div');sl.className='scan-line';cimgDiv.appendChild(sl);}
 
-  if(c.img){
+  var imgs=c.imgs&&c.imgs.length?c.imgs:(c.img?[c.img]:[]);
+  if(imgs.length>0){
+    // Show first image, cycle on hover if multiple
     var im=document.createElement('img');
     im.alt=''; im.loading='lazy';
+    im.dataset.imgs=JSON.stringify(imgs);
+    im.dataset.idx='0';
     im.onerror=function(){this.style.display='none';};
-    im.src=c.img;
+    im.src=imgs[0];
+    if(imgs.length>1){
+      // Show variant count badge
+      var vbadge=document.createElement('div');
+      vbadge.className='vbadge';
+      vbadge.textContent=imgs.length+' arts';
+      cimgDiv.appendChild(vbadge);
+      // Cycle on click
+      im.style.cursor='pointer';
+      im.addEventListener('click',function(e){
+        e.stopPropagation();
+        var all=JSON.parse(this.dataset.imgs);
+        var next=(parseInt(this.dataset.idx)+1)%all.length;
+        this.dataset.idx=next;
+        this.src=all[next];
+      });
+    }
     cimgDiv.appendChild(im);
   } else {
     var sp=document.createElement('span');
