@@ -333,8 +333,8 @@ function buildToolbar(game) {
     </div>
     <span class="result-count" id="count-${game}"></span>
     <div class="print-group">
-      <button class="btn-action" onclick="printView('${game}','filtered')">🖨 Print View</button>
-      <button class="btn-action" onclick="printView('${game}','all')">🖨 Print All</button>
+      <button class="btn-action" onclick="printView('${game}','filtered')">⬇ Export View</button>
+      <button class="btn-action" onclick="printView('${game}','all')">⬇ Export All</button>
     </div>`;
   updateOwnedBtns(game);
 }
@@ -549,83 +549,181 @@ async function loadProxiedImage(imgEl, url) {
   }
 }
 
-// ── PRINT ─────────────────────────────────────────────────────
-// Opens a clean new window with a simple table — avoids browser choking
-// on thousands of card DOM elements from the main view.
-function printView(game, mode) {
-  const allCards   = state[game].cards;
-  const filtered   = getFiltered(game);
-  const cards      = mode === 'all' ? allCards : filtered;
-  const ownedOnly  = mode === 'filtered' && state[game].filters.owned === 'owned';
+// ── EXPORT AS IMAGE ──────────────────────────────────────────
+// Renders cards onto a canvas and downloads as a high-quality JPG.
+// Uses html2canvas to capture the grid — no browser PDF compression.
 
-  const gameName = { digimon:'DIGIMON TCG', gundam:'GUNDAM CARD GAME', riftbound:'RIFTBOUND TCG' }[game];
-  const total    = allCards.length;
-  const ownedCt  = allCards.filter(c => c.owned).length;
-  const pct      = total > 0 ? Math.round((ownedCt / total) * 100) : 0;
+async function printView(game, mode) {
+  const allCards  = state[game].cards;
+  const filtered  = getFiltered(game);
+  const cards     = mode === 'all' ? allCards : filtered;
 
-  // Build a human-readable filter summary for the print header
-  const f = state[game].filters;
+  const gameName  = { digimon:'DIGIMON TCG', gundam:'GUNDAM CARD GAME', riftbound:'RIFTBOUND TCG' }[game];
+  const total     = allCards.length;
+  const ownedCt   = allCards.filter(c => c.owned).length;
+  const pct       = total > 0 ? Math.round((ownedCt / total) * 100) : 0;
+  const f         = state[game].filters;
   const activeFilters = [];
   if (f.set)    activeFilters.push('Set: ' + f.set);
   if (f.rarity) activeFilters.push('Rarity: ' + f.rarity);
-  if (f.owned === 'owned')   activeFilters.push('Status: Owned only');
-  if (f.owned === 'missing') activeFilters.push('Status: Missing only');
-  if (f.search) activeFilters.push('Search: "' + f.search + '"');
-  const filterSummary = activeFilters.length > 0
-    ? 'Filters: ' + activeFilters.join(' · ')
-    : 'No filters applied — showing all cards';
+  if (f.owned === 'owned')   activeFilters.push('Owned only');
+  if (f.owned === 'missing') activeFilters.push('Missing only');
   const label = mode === 'all'
-    ? `All ${cards.length} cards (no filters)`
-    : `${cards.length} cards · ${filterSummary}`;
+    ? `All ${cards.length} cards`
+    : `${cards.length} cards` + (activeFilters.length ? ' · ' + activeFilters.join(' · ') : '');
 
-  const gridItems = cards.map(c => `
-    <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;break-inside:avoid;
-      background:${c.owned ? '#fff' : '#f9f9f9'};opacity:${c.owned ? '1' : '0.55'}">
-      <div style="aspect-ratio:3/4;background:#f3f4f6;overflow:hidden;position:relative">
-        ${c.imageUrl
-          ? `<img src="${c.imageUrl}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`
-          : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa">${c.number}</div>`}
-        <div style="position:absolute;top:2px;right:2px;width:10px;height:10px;border-radius:50%;
-          background:${c.owned ? '#dcfce7' : '#fee2e2'};display:flex;align-items:center;
-          justify-content:center;font-size:6px;font-weight:700;color:${c.owned ? '#166534' : '#991b1b'}">
-          ${c.owned ? '✓' : '✕'}
-        </div>
-      </div>
-      <div style="padding:2px 3px 3px">
-        <div style="font-family:monospace;font-size:6px;color:#9ca3af;margin-bottom:1px">${c.number}</div>
-        <div style="font-size:6px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
-      </div>
-    </div>`).join('');
+  // Show loading toast
+  toast('⏳ Preparing image export…', 'ok');
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>${gameName} — Collection Print</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 16px; color: #111; }
-      h1 { font-size: 20px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
-      .meta { font-size: 12px; color: #666; margin-bottom: 16px; display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end; }
-      .stat { display: inline-flex; flex-direction: column; gap: 2px; }
-      .stat-l { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #999; }
-      .stat-v { font-size: 18px; font-weight: 700; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 4px; }
-      @page { margin: 12mm; }
-      @media print { body { margin: 0; } }
-    </style>
-  </head><body>
-    <h1>${gameName}</h1>
-    <div class="meta">
-      <span class="stat"><span class="stat-l">Total</span><span class="stat-v">${total.toLocaleString()}</span></span>
-      <span class="stat"><span class="stat-l">Owned</span><span class="stat-v">${ownedCt.toLocaleString()}</span></span>
-      <span class="stat"><span class="stat-l">Missing</span><span class="stat-v">${(total-ownedCt).toLocaleString()}</span></span>
-      <span class="stat"><span class="stat-l">Completion</span><span class="stat-v">${pct}%</span></span>
-      <span style="margin-left:auto;font-size:11px;color:#999">${label}</span>
-    </div>
-    <div class="grid">${gridItems}</div>
-    <script>window.onload = () => { window.print(); }<\/script>
-  </body></html>`;
+  // Pre-fetch all images as base64 in parallel batches
+  async function fetchB64(url) {
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      return await new Promise(res => {
+        const r = new FileReader();
+        r.onloadend = () => res(r.result);
+        r.readAsDataURL(blob);
+      });
+    } catch { return null; }
+  }
 
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
+  const BATCH = 20;
+  const imgCache = {};
+  const withImg = cards.filter(c => c.imageUrl);
+  for (let i = 0; i < withImg.length; i += BATCH) {
+    await Promise.all(withImg.slice(i, i + BATCH).map(async c => {
+      const b64 = await fetchB64(c.imageUrl);
+      if (b64) imgCache[c.imageUrl] = b64;
+    }));
+  }
+
+  // Card dimensions (px at 2x for sharpness)
+  const SCALE   = 2;
+  const COLS    = 14;
+  const CARD_W  = 80  * SCALE;
+  const CARD_H  = 110 * SCALE;
+  const GAP     = 4   * SCALE;
+  const PAD     = 16  * SCALE;
+  const HEADER  = 56  * SCALE;
+
+  const rows    = Math.ceil(cards.length / COLS);
+  const W       = COLS * CARD_W + (COLS - 1) * GAP + PAD * 2;
+  const H       = HEADER + rows * CARD_H + (rows - 1) * GAP + PAD * 2;
+
+  const canvas  = document.createElement('canvas');
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx     = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // Header
+  ctx.fillStyle = '#111111';
+  ctx.font      = `bold ${18 * SCALE}px Arial`;
+  ctx.fillText(gameName, PAD, PAD + 18 * SCALE);
+
+  ctx.fillStyle = '#6b7280';
+  ctx.font      = `${9 * SCALE}px Arial`;
+  ctx.fillText(
+    `Total: ${total}  Owned: ${ownedCt}  Missing: ${total - ownedCt}  Completion: ${pct}%  —  ${label}`,
+    PAD, PAD + 36 * SCALE
+  );
+
+  // Draw each card
+  for (let i = 0; i < cards.length; i++) {
+    const c   = cards[i];
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    const x   = PAD + col * (CARD_W + GAP);
+    const y   = HEADER + PAD + row * (CARD_H + GAP);
+
+    // Card background
+    ctx.fillStyle = c.owned ? '#ffffff' : '#f3f4f6';
+    ctx.globalAlpha = c.owned ? 1 : 0.55;
+    roundRect(ctx, x, y, CARD_W, CARD_H, 4 * SCALE);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Card border
+    ctx.strokeStyle = c.owned ? '#e5e7eb' : '#d1d5db';
+    ctx.lineWidth   = 1 * SCALE;
+    roundRect(ctx, x, y, CARD_W, CARD_H, 4 * SCALE);
+    ctx.stroke();
+
+    // Card image
+    const imgH = CARD_H - 18 * SCALE; // leave room for text below
+    const b64  = imgCache[c.imageUrl];
+    if (b64) {
+      const img = new Image();
+      await new Promise(res => {
+        img.onload  = res;
+        img.onerror = res;
+        img.src     = b64;
+      });
+      // Clip to card image area
+      ctx.save();
+      roundRect(ctx, x, y, CARD_W, imgH, 4 * SCALE);
+      ctx.clip();
+      ctx.globalAlpha = c.owned ? 1 : 0.55;
+      ctx.drawImage(img, x, y, CARD_W, imgH);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    // Card number + name text
+    ctx.fillStyle = '#6b7280';
+    ctx.font      = `${5.5 * SCALE}px monospace`;
+    ctx.fillText(c.number, x + 2 * SCALE, y + imgH + 8 * SCALE, CARD_W - 4 * SCALE);
+
+    ctx.fillStyle = '#111111';
+    ctx.font      = `bold ${5.5 * SCALE}px Arial`;
+    ctx.fillText(c.name, x + 2 * SCALE, y + imgH + 16 * SCALE, CARD_W - 4 * SCALE);
+
+    // Owned badge
+    const bx = x + CARD_W - 10 * SCALE;
+    const by = y + 4 * SCALE;
+    ctx.beginPath();
+    ctx.arc(bx, by, 5 * SCALE, 0, Math.PI * 2);
+    ctx.fillStyle = c.owned ? '#dcfce7' : '#fee2e2';
+    ctx.fill();
+    ctx.fillStyle = c.owned ? '#166534' : '#991b1b';
+    ctx.font      = `bold ${5 * SCALE}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(c.owned ? '✓' : '✕', bx, by);
+    ctx.textAlign    = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // Download as JPG at 95% quality
+  const filename = game + '-collection-' + (mode === 'all' ? 'all' : 'filtered') + '.jpg';
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('✓ Image downloaded: ' + filename, 'ok');
+  }, 'image/jpeg', 0.95);
+}
+
+// Helper: draw rounded rectangle path
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }
 
 // ── TOAST ─────────────────────────────────────────────────────
