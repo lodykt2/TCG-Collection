@@ -295,16 +295,22 @@ function updateNavBadge(game) {
 
 // ── STATS ─────────────────────────────────────────────────────
 function renderStats(game) {
-  const cards = state[game].cards;
-  const total = cards.length, owned = cards.filter(c => c.owned).length;
-  const pct = total > 0 ? Math.round((owned/total)*100) : 0;
-  const accent = {digimon:'var(--digi-accent)',gundam:'var(--gun-accent)',riftbound:'var(--rift-accent)'}[game];
+  const allCards  = state[game].cards;
+  const f         = state[game].filters;
+  const hasFilter = f.set || f.rarity || f.owned || f.search;
+  const cards     = hasFilter ? getFiltered(game) : allCards;
+  const total     = cards.length;
+  const owned     = cards.filter(c => c.owned).length;
+  const pct       = total > 0 ? Math.round((owned / total) * 100) : 0;
+  const accent    = {digimon:'var(--digi-accent)',gundam:'var(--gun-accent)',riftbound:'var(--rift-accent)'}[game];
+  const tag       = hasFilter ? ' <span style="font-size:9px;opacity:0.6;letter-spacing:1px">FILTERED</span>' : '';
+
   document.getElementById('stats-' + game).innerHTML = `
-    <div class="stat-chip"><span class="stat-label">Total</span><span class="stat-value">${total.toLocaleString()}</span></div>
-    <div class="stat-chip"><span class="stat-label">Owned</span><span class="stat-value">${owned.toLocaleString()}</span></div>
-    <div class="stat-chip"><span class="stat-label">Missing</span><span class="stat-value">${(total-owned).toLocaleString()}</span></div>
+    <div class="stat-chip"><span class="stat-label">Total${tag}</span><span class="stat-value">${total.toLocaleString()}</span></div>
+    <div class="stat-chip"><span class="stat-label">Owned${tag}</span><span class="stat-value">${owned.toLocaleString()}</span></div>
+    <div class="stat-chip"><span class="stat-label">Missing${tag}</span><span class="stat-value">${(total-owned).toLocaleString()}</span></div>
     <div class="progress-wrap">
-      <div class="progress-header"><span class="stat-label">Completion</span><span class="stat-value" style="font-size:18px">${pct}%</span></div>
+      <div class="progress-header"><span class="stat-label">Completion${tag}</span><span class="stat-value" style="font-size:18px">${pct}%</span></div>
       <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%;background:${accent}"></div></div>
     </div>`;
 }
