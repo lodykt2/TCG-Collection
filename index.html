@@ -145,18 +145,7 @@
   [data-section="riftbound"] .stat-chip{border-color:var(--rift-border)} [data-section="riftbound"] .progress-wrap{border-color:var(--rift-border)} [data-section="riftbound"] .progress-bar-fill{background:var(--rift-accent)}
   [data-section="riftbound"] .card-item.owned:hover{border-color:var(--rift-border);box-shadow:0 0 18px var(--rift-glow)} [data-section="riftbound"] .owned-badge{background:var(--rift-glow);color:var(--rift-bright);border:1px solid var(--rift-border)} [data-section="riftbound"] .filter-btn.active{border-color:var(--rift-border);color:var(--rift-bright)}
 
-  /* PRINT */
-  @media print {
-    body{background:#fff;color:#000} body::before,header,.game-nav,.toolbar,#toast{display:none!important}
-    .game-section{display:block!important} .game-section:not(.print-target){display:none!important}
-    .card-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
-    .card-item{border:1px solid #ccc;break-inside:avoid} .card-toggle{display:none}
-    .card-item.unowned{opacity:0.3} .card-item.print-owned-only.unowned{display:none!important}
-    .card-table tr.unowned.print-owned-only{display:none!important}
-    .stat-chip,.progress-wrap{background:#f5f5f5;border:1px solid #ddd}
-    .stat-value,.section-game-label{color:#333!important} .stat-label,.card-number,.card-rarity{color:#666!important}
-    main{padding:0 16px} .section-header{padding:12px 0}
-  }
+  /* PRINT — handled via dedicated print window, not window.print() */
 
   @media(max-width:600px){
     header,.game-nav,main{padding-left:16px;padding-right:16px}
@@ -499,17 +488,96 @@ function updateCardEl(game, rowIndex, owned) {
 }
 
 // ── PRINT ─────────────────────────────────────────────────────
+// Opens a clean new window with a simple table — avoids browser choking
+// on thousands of card DOM elements from the main view.
 function printView(game, mode) {
-  document.querySelectorAll('.game-section').forEach(s => s.classList.remove('print-target'));
-  document.getElementById('section-' + game).classList.add('print-target');
-  if (mode === 'all') {
-    document.querySelectorAll(`#section-${game} .card-item`).forEach(el => el.classList.remove('print-owned-only'));
-    document.querySelectorAll(`#section-${game} tr`).forEach(el => el.classList.remove('print-owned-only'));
-  } else {
-    document.querySelectorAll(`#section-${game} .card-item.unowned`).forEach(el => el.classList.add('print-owned-only'));
-    document.querySelectorAll(`#section-${game} tr.unowned`).forEach(el => el.classList.add('print-owned-only'));
-  }
-  window.print();
+  const allCards   = state[game].cards;
+  const filtered   = getFiltered(game);
+  const cards      = mode === 'all' ? allCards : filtered;
+  const ownedOnly  = mode === 'filtered' && state[game].filters.owned === 'owned';
+
+  const gameName = { digimon:'DIGIMON TCG', gundam:'GUNDAM CARD GAME', riftbound:'RIFTBOUND TCG' }[game];
+  const total    = allCards.length;
+  const ownedCt  = allCards.filter(c => c.owned).length;
+  const pct      = total > 0 ? Math.round((ownedCt / total) * 100) : 0;
+
+  // Build a human-readable filter summary for the print header
+  const f = state[game].filters;
+  const activeFilters = [];
+  if (f.set)    activeFilters.push('Set: ' + f.set);
+  if (f.rarity) activeFilters.push('Rarity: ' + f.rarity);
+  if (f.owned === 'owned')   activeFilters.push('Status: Owned only');
+  if (f.owned === 'missing') activeFilters.push('Status: Missing only');
+  if (f.search) activeFilters.push('Search: "' + f.search + '"');
+  const filterSummary = activeFilters.length > 0
+    ? 'Filters: ' + activeFilters.join(' · ')
+    : 'No filters applied — showing all cards';
+  const label = mode === 'all'
+    ? `All ${cards.length} cards (no filters)`
+    : `${cards.length} cards · ${filterSummary}`;
+
+  const rows = cards.map(c => `
+    <tr style="background:${c.owned ? '#fff' : '#fafafa'}">
+      <td style="width:50px;padding:6px 8px">
+        ${c.imageUrl
+          ? `<img src="${c.imageUrl}" style="width:36px;height:48px;object-fit:cover;border-radius:3px;display:block" onerror="this.style.display='none'">`
+          : `<div style="width:36px;height:48px;background:#eee;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#999">—</div>`}
+      </td>
+      <td style="padding:6px 8px;font-family:monospace;font-size:11px;color:#555;white-space:nowrap">${c.number}</td>
+      <td style="padding:6px 8px;font-weight:600;font-size:13px">${c.name}</td>
+      <td style="padding:6px 8px;font-size:12px;color:#666">${c.setName}</td>
+      <td style="padding:6px 8px;font-size:12px;color:#666">${c.rarity}</td>
+      <td style="padding:6px 8px;text-align:center">
+        <span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;
+          background:${c.owned ? '#dcfce7' : '#fee2e2'};color:${c.owned ? '#166534' : '#991b1b'}">
+          ${c.owned ? '✓' : '✕'}
+        </span>
+      </td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>${gameName} — Collection Print</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
+      h1 { font-size: 20px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+      .meta { font-size: 12px; color: #666; margin-bottom: 16px; display: flex; gap: 24px; }
+      .stat { display: inline-flex; flex-direction: column; gap: 2px; }
+      .stat-l { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #999; }
+      .stat-v { font-size: 18px; font-weight: 700; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th { text-align: left; padding: 8px 8px; background: #f3f4f6; border-bottom: 2px solid #e5e7eb;
+           font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; }
+      td { border-bottom: 1px solid #f3f4f6; }
+      tr:last-child td { border-bottom: none; }
+      @page { margin: 16mm; }
+      @media print { body { margin: 0; } }
+    </style>
+  </head><body>
+    <h1>${gameName}</h1>
+    <div class="meta">
+      <span class="stat"><span class="stat-l">Total</span><span class="stat-v">${total.toLocaleString()}</span></span>
+      <span class="stat"><span class="stat-l">Owned</span><span class="stat-v">${ownedCt.toLocaleString()}</span></span>
+      <span class="stat"><span class="stat-l">Missing</span><span class="stat-v">${(total-ownedCt).toLocaleString()}</span></span>
+      <span class="stat"><span class="stat-l">Completion</span><span class="stat-v">${pct}%</span></span>
+      <span style="margin-left:auto;font-size:12px;color:#999;align-self:flex-end">${label}</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th style="width:50px">IMG</th>
+        <th style="width:120px">Number</th>
+        <th>Name</th>
+        <th style="width:180px">Set</th>
+        <th style="width:120px">Rarity</th>
+        <th style="width:70px;text-align:center">Owned</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <script>window.onload = () => { window.print(); }<\/script>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
 }
 
 // ── TOAST ─────────────────────────────────────────────────────
