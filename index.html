@@ -603,117 +603,159 @@ async function printView(game, mode) {
     }));
   }
 
-  // Card dimensions (px at 2x for sharpness)
-  const SCALE   = 2;
-  const COLS    = 14;
-  const CARD_W  = 80  * SCALE;
-  const CARD_H  = 110 * SCALE;
-  const GAP     = 4   * SCALE;
-  const PAD     = 16  * SCALE;
-  const HEADER  = 56  * SCALE;
+  // Maximum safe canvas width is ~8000px before browsers silently fail.
+  // At 10 columns: 8000 / 10 = 800px per card — matches source image resolution.
+  // Height is calculated dynamically so tall exports stay within limits.
+  const COLS    = 10;
+  const CARD_W  = 800;
+  const CARD_H  = 1067;  // 3:4 ratio — matches real card proportions
+  const GAP     = 8;
+  const PAD     = 24;
+  const HEADER  = 120;
+  const SCALE   = 1;     // No scaling needed — we're already at full resolution
 
-  const rows    = Math.ceil(cards.length / COLS);
-  const W       = COLS * CARD_W + (COLS - 1) * GAP + PAD * 2;
-  const H       = HEADER + rows * CARD_H + (rows - 1) * GAP + PAD * 2;
+  // Max rows per page before canvas gets too tall (~7500px safe limit)
+  const MAX_ROWS_PER_PAGE = 7;
+  const ROWS_TOTAL        = Math.ceil(cards.length / COLS);
+  const PAGES             = Math.ceil(ROWS_TOTAL / MAX_ROWS_PER_PAGE);
+  const W                 = COLS * CARD_W + (COLS - 1) * GAP + PAD * 2;
+  const TEXT_H            = 26; // px for number + name below image
+  const IMG_H             = CARD_H - TEXT_H;
 
-  const canvas  = document.createElement('canvas');
-  canvas.width  = W;
-  canvas.height = H;
-  const ctx     = canvas.getContext('2d');
+  const baseFilename = game + '-collection-' + (mode === 'all' ? 'all' : 'filtered');
+  const headerLine   = `Total: ${total}  Owned: ${ownedCt}  Missing: ${total - ownedCt}  Completion: ${pct}%  —  ${label}`;
 
-  // Background
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, W, H);
+  async function drawPage(pageIndex) {
+    const startRow = pageIndex * MAX_ROWS_PER_PAGE;
+    const endRow   = Math.min(startRow + MAX_ROWS_PER_PAGE, ROWS_TOTAL);
+    const pageRows = endRow - startRow;
+    const H        = HEADER + pageRows * CARD_H + (pageRows - 1) * GAP + PAD * 2;
 
-  // Header
-  ctx.fillStyle = '#111111';
-  ctx.font      = `bold ${18 * SCALE}px Arial`;
-  ctx.fillText(gameName, PAD, PAD + 18 * SCALE);
+    const canvas = document.createElement('canvas');
+    canvas.width  = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
 
-  ctx.fillStyle = '#6b7280';
-  ctx.font      = `${9 * SCALE}px Arial`;
-  ctx.fillText(
-    `Total: ${total}  Owned: ${ownedCt}  Missing: ${total - ownedCt}  Completion: ${pct}%  —  ${label}`,
-    PAD, PAD + 36 * SCALE
-  );
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
 
-  // Draw each card
-  for (let i = 0; i < cards.length; i++) {
-    const c   = cards[i];
-    const col = i % COLS;
-    const row = Math.floor(i / COLS);
-    const x   = PAD + col * (CARD_W + GAP);
-    const y   = HEADER + PAD + row * (CARD_H + GAP);
-
-    // Card background
-    ctx.fillStyle = c.owned ? '#ffffff' : '#f3f4f6';
-    ctx.globalAlpha = c.owned ? 1 : 0.55;
-    roundRect(ctx, x, y, CARD_W, CARD_H, 4 * SCALE);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // Card border
-    ctx.strokeStyle = c.owned ? '#e5e7eb' : '#d1d5db';
-    ctx.lineWidth   = 1 * SCALE;
-    roundRect(ctx, x, y, CARD_W, CARD_H, 4 * SCALE);
-    ctx.stroke();
-
-    // Card image
-    const imgH = CARD_H - 18 * SCALE; // leave room for text below
-    const b64  = imgCache[c.imageUrl];
-    if (b64) {
-      const img = new Image();
-      await new Promise(res => {
-        img.onload  = res;
-        img.onerror = res;
-        img.src     = b64;
-      });
-      // Clip to card image area
-      ctx.save();
-      roundRect(ctx, x, y, CARD_W, imgH, 4 * SCALE);
-      ctx.clip();
-      ctx.globalAlpha = c.owned ? 1 : 0.55;
-      ctx.drawImage(img, x, y, CARD_W, imgH);
-      ctx.globalAlpha = 1;
-      ctx.restore();
+    // Header (only on first page)
+    if (pageIndex === 0) {
+      ctx.fillStyle = '#111111';
+      ctx.font      = 'bold 36px Arial';
+      ctx.fillText(gameName, PAD, PAD + 36);
+      ctx.fillStyle = '#6b7280';
+      ctx.font      = '22px Arial';
+      ctx.fillText(headerLine, PAD, PAD + 72);
+      if (PAGES > 1) {
+        ctx.fillStyle = '#9ca3af';
+        ctx.font      = '18px Arial';
+        ctx.fillText(`Page ${pageIndex + 1} of ${PAGES}`, W - PAD - 120, PAD + 72);
+      }
+    } else {
+      // Continuation page — smaller header
+      ctx.fillStyle = '#111111';
+      ctx.font      = 'bold 28px Arial';
+      ctx.fillText(gameName + (PAGES > 1 ? `  —  Page ${pageIndex + 1} of ${PAGES}` : ''), PAD, PAD + 36);
+      ctx.fillStyle = '#9ca3af';
+      ctx.font      = '18px Arial';
+      ctx.fillText(headerLine, PAD, PAD + 64);
     }
 
-    // Card number + name text
-    ctx.fillStyle = '#6b7280';
-    ctx.font      = `${5.5 * SCALE}px monospace`;
-    ctx.fillText(c.number, x + 2 * SCALE, y + imgH + 8 * SCALE, CARD_W - 4 * SCALE);
+    // Draw cards for this page
+    const startCard = startRow * COLS;
+    const endCard   = Math.min(startCard + pageRows * COLS, cards.length);
 
-    ctx.fillStyle = '#111111';
-    ctx.font      = `bold ${5.5 * SCALE}px Arial`;
-    ctx.fillText(c.name, x + 2 * SCALE, y + imgH + 16 * SCALE, CARD_W - 4 * SCALE);
+    for (let i = startCard; i < endCard; i++) {
+      const c      = cards[i];
+      const pageI  = i - startCard;
+      const col    = pageI % COLS;
+      const row    = Math.floor(pageI / COLS);
+      const x      = PAD + col * (CARD_W + GAP);
+      const y      = HEADER + PAD + row * (CARD_H + GAP);
 
-    // Owned badge
-    const bx = x + CARD_W - 10 * SCALE;
-    const by = y + 4 * SCALE;
-    ctx.beginPath();
-    ctx.arc(bx, by, 5 * SCALE, 0, Math.PI * 2);
-    ctx.fillStyle = c.owned ? '#dcfce7' : '#fee2e2';
-    ctx.fill();
-    ctx.fillStyle = c.owned ? '#166534' : '#991b1b';
-    ctx.font      = `bold ${5 * SCALE}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(c.owned ? '✓' : '✕', bx, by);
-    ctx.textAlign    = 'left';
-    ctx.textBaseline = 'alphabetic';
+      // Card background
+      ctx.globalAlpha = c.owned ? 1 : 0.5;
+      ctx.fillStyle   = c.owned ? '#ffffff' : '#f3f4f6';
+      roundRect(ctx, x, y, CARD_W, CARD_H, 8);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Card border
+      ctx.strokeStyle = c.owned ? '#d1d5db' : '#e5e7eb';
+      ctx.lineWidth   = 2;
+      roundRect(ctx, x, y, CARD_W, CARD_H, 8);
+      ctx.stroke();
+
+      // Card image — clipped to image area
+      const b64 = imgCache[c.imageUrl];
+      if (b64) {
+        const img = new Image();
+        await new Promise(res => { img.onload = res; img.onerror = res; img.src = b64; });
+        ctx.save();
+        roundRect(ctx, x, y, CARD_W, IMG_H, 8);
+        ctx.clip();
+        ctx.globalAlpha = c.owned ? 1 : 0.5;
+        ctx.drawImage(img, x, y, CARD_W, IMG_H);
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+
+      // Card number
+      ctx.fillStyle = '#6b7280';
+      ctx.font      = '18px monospace';
+      ctx.fillText(c.number, x + 6, y + IMG_H + 17, CARD_W - 12);
+
+      // Card name
+      ctx.fillStyle = '#111111';
+      ctx.font      = 'bold 20px Arial';
+      ctx.fillText(c.name, x + 6, y + IMG_H + 42, CARD_W - 12);
+
+      // Owned badge
+      const bx = x + CARD_W - 20;
+      const by = y + 20;
+      ctx.beginPath();
+      ctx.arc(bx, by, 14, 0, Math.PI * 2);
+      ctx.fillStyle = c.owned ? '#dcfce7' : '#fee2e2';
+      ctx.fill();
+      ctx.strokeStyle = c.owned ? '#86efac' : '#fca5a5';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle    = c.owned ? '#166534' : '#991b1b';
+      ctx.font         = 'bold 16px Arial';
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(c.owned ? '✓' : '✕', bx, by);
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    // Download this page
+    return new Promise(resolve => {
+      const suffix   = PAGES > 1 ? `-p${pageIndex + 1}of${PAGES}` : '';
+      const filename = baseFilename + suffix + '.jpg';
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        resolve();
+      }, 'image/jpeg', 0.95);
+    });
   }
 
-  // Download as JPG at 95% quality
-  const filename = game + '-collection-' + (mode === 'all' ? 'all' : 'filtered') + '.jpg';
-  canvas.toBlob(blob => {
-    const url = URL.createObjectURL(blob);
-    const a   = document.createElement('a');
-    a.href     = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('✓ Image downloaded: ' + filename, 'ok');
-  }, 'image/jpeg', 0.95);
+  // Export all pages sequentially
+  for (let p = 0; p < PAGES; p++) {
+    toast(`⏳ Exporting page ${p + 1} of ${PAGES}…`, 'ok');
+    await drawPage(p);
+    if (p < PAGES - 1) await new Promise(res => setTimeout(res, 300)); // brief pause between pages
+  }
+  toast(`✓ Export complete — ${PAGES} file${PAGES > 1 ? 's' : ''} downloaded`, 'ok');
 }
 
 // Helper: draw rounded rectangle path
