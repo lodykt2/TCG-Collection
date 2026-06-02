@@ -615,12 +615,25 @@ async function printView(game, mode) {
   const SCALE   = 1;     // No scaling needed — we're already at full resolution
 
   // Max rows per page before canvas gets too tall (~7500px safe limit)
-  const MAX_ROWS_PER_PAGE = 7;
-  const ROWS_TOTAL        = Math.ceil(cards.length / COLS);
+  const MAX_ROWS_PER_PAGE = 10;
+  const COLS_USED         = 14;
+  const CARD_W_USED       = 560;
+  const CARD_H_USED       = 747;   // 3:4 ratio
+  const GAP_USED          = 6;
+  const PAD_USED          = 20;
+  const HEADER_USED       = 100;
+  const TEXT_H            = 52;    // space below image for number + name
+  const IMG_H             = CARD_H_USED - TEXT_H;
+  const ROWS_TOTAL        = Math.ceil(cards.length / COLS_USED);
   const PAGES             = Math.ceil(ROWS_TOTAL / MAX_ROWS_PER_PAGE);
-  const W                 = COLS * CARD_W + (COLS - 1) * GAP + PAD * 2;
-  const TEXT_H            = 26; // px for number + name below image
-  const IMG_H             = CARD_H - TEXT_H;
+  const W                 = COLS_USED * CARD_W_USED + (COLS_USED - 1) * GAP_USED + PAD_USED * 2;
+  // Alias to match rest of code
+  const COLS   = COLS_USED;
+  const CARD_W = CARD_W_USED;
+  const CARD_H = CARD_H_USED;
+  const GAP    = GAP_USED;
+  const PAD    = PAD_USED;
+  const HEADER = HEADER_USED;
 
   const baseFilename = game + '-collection-' + (mode === 'all' ? 'all' : 'filtered');
   const headerLine   = `Total: ${total}  Owned: ${ownedCt}  Missing: ${total - ownedCt}  Completion: ${pct}%  —  ${label}`;
@@ -675,60 +688,76 @@ async function printView(game, mode) {
       const x      = PAD + col * (CARD_W + GAP);
       const y      = HEADER + PAD + row * (CARD_H + GAP);
 
-      // Card background
-      ctx.globalAlpha = c.owned ? 1 : 0.5;
-      ctx.fillStyle   = c.owned ? '#ffffff' : '#f3f4f6';
-      roundRect(ctx, x, y, CARD_W, CARD_H, 8);
-      ctx.fill();
+      // ── Card background (always opaque white) ──
       ctx.globalAlpha = 1;
+      ctx.fillStyle   = '#ffffff';
+      roundRect(ctx, x, y, CARD_W, CARD_H, 6);
+      ctx.fill();
 
-      // Card border
+      // ── Card border ──
       ctx.strokeStyle = c.owned ? '#d1d5db' : '#e5e7eb';
       ctx.lineWidth   = 2;
-      roundRect(ctx, x, y, CARD_W, CARD_H, 8);
+      roundRect(ctx, x, y, CARD_W, CARD_H, 6);
       ctx.stroke();
 
-      // Card image — clipped to image area
+      // ── Card image — always drawn at full opacity, greyscale if unowned ──
       const b64 = imgCache[c.imageUrl];
       if (b64) {
         const img = new Image();
         await new Promise(res => { img.onload = res; img.onerror = res; img.src = b64; });
+
+        // Draw image to a temp canvas so we can apply greyscale filter
+        const tmp    = document.createElement('canvas');
+        tmp.width    = CARD_W;
+        tmp.height   = IMG_H;
+        const tmpCtx = tmp.getContext('2d');
+        tmpCtx.drawImage(img, 0, 0, CARD_W, IMG_H);
+
+        // All cards drawn in full color regardless of owned status
+
+        // Clip and draw onto main canvas
         ctx.save();
-        roundRect(ctx, x, y, CARD_W, IMG_H, 8);
+        roundRect(ctx, x, y, CARD_W, IMG_H, 6);
         ctx.clip();
-        ctx.globalAlpha = c.owned ? 1 : 0.5;
-        ctx.drawImage(img, x, y, CARD_W, IMG_H);
         ctx.globalAlpha = 1;
+        ctx.drawImage(tmp, x, y, CARD_W, IMG_H);
         ctx.restore();
       }
 
+      // ── Card info below image ──
+      // Set background for text area
+      ctx.fillStyle = c.owned ? '#f9fafb' : '#f3f4f6';
+      ctx.fillRect(x, y + IMG_H, CARD_W, TEXT_H);
+
       // Card number
-      ctx.fillStyle = '#6b7280';
-      ctx.font      = '18px monospace';
-      ctx.fillText(c.number, x + 6, y + IMG_H + 17, CARD_W - 12);
+      ctx.fillStyle = '#9ca3af';
+      ctx.font      = '16px monospace';
+      ctx.fillText(c.number, x + 8, y + IMG_H + 19, CARD_W - 16);
 
       // Card name
-      ctx.fillStyle = '#111111';
-      ctx.font      = 'bold 20px Arial';
-      ctx.fillText(c.name, x + 6, y + IMG_H + 42, CARD_W - 12);
+      ctx.fillStyle = c.owned ? '#111111' : '#6b7280';
+      ctx.font      = 'bold 18px Arial';
+      ctx.fillText(c.name, x + 8, y + IMG_H + 42, CARD_W - 16);
 
-      // Owned badge
-      const bx = x + CARD_W - 20;
-      const by = y + 20;
+      // ── Owned badge (top-right corner, always full opacity) ──
+      const bx = x + CARD_W - 22;
+      const by = y + 22;
+      ctx.globalAlpha = 1;
       ctx.beginPath();
-      ctx.arc(bx, by, 14, 0, Math.PI * 2);
+      ctx.arc(bx, by, 16, 0, Math.PI * 2);
       ctx.fillStyle = c.owned ? '#dcfce7' : '#fee2e2';
       ctx.fill();
       ctx.strokeStyle = c.owned ? '#86efac' : '#fca5a5';
-      ctx.lineWidth = 2;
+      ctx.lineWidth   = 2;
       ctx.stroke();
       ctx.fillStyle    = c.owned ? '#166534' : '#991b1b';
-      ctx.font         = 'bold 16px Arial';
+      ctx.font         = 'bold 18px Arial';
       ctx.textAlign    = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(c.owned ? '✓' : '✕', bx, by);
       ctx.textAlign    = 'left';
       ctx.textBaseline = 'alphabetic';
+      ctx.globalAlpha  = 1;
     }
 
     // Download this page
