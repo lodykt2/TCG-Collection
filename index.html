@@ -578,40 +578,36 @@ function printView(game, mode) {
     ? `All ${cards.length} cards (no filters)`
     : `${cards.length} cards · ${filterSummary}`;
 
-  const rows = cards.map(c => `
-    <tr style="background:${c.owned ? '#fff' : '#fafafa'}">
-      <td style="width:50px;padding:6px 8px">
+  const gridItems = cards.map(c => `
+    <div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;break-inside:avoid;
+      background:${c.owned ? '#fff' : '#f9f9f9'};opacity:${c.owned ? '1' : '0.55'}">
+      <div style="aspect-ratio:3/4;background:#f3f4f6;overflow:hidden;position:relative">
         ${c.imageUrl
-          ? `<img src="${c.imageUrl}" style="width:36px;height:48px;object-fit:cover;border-radius:3px;display:block" onerror="this.style.display='none'">`
-          : `<div style="width:36px;height:48px;background:#eee;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#999">—</div>`}
-      </td>
-      <td style="padding:6px 8px;font-family:monospace;font-size:11px;color:#555;white-space:nowrap">${c.number}</td>
-      <td style="padding:6px 8px;font-weight:600;font-size:13px">${c.name}</td>
-      <td style="padding:6px 8px;font-size:12px;color:#666">${c.setName}</td>
-      <td style="padding:6px 8px;font-size:12px;color:#666">${c.rarity}</td>
-      <td style="padding:6px 8px;text-align:center">
-        <span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;
-          background:${c.owned ? '#dcfce7' : '#fee2e2'};color:${c.owned ? '#166534' : '#991b1b'}">
+          ? `<img src="${c.imageUrl}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`
+          : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa">${c.number}</div>`}
+        <div style="position:absolute;top:2px;right:2px;width:10px;height:10px;border-radius:50%;
+          background:${c.owned ? '#dcfce7' : '#fee2e2'};display:flex;align-items:center;
+          justify-content:center;font-size:6px;font-weight:700;color:${c.owned ? '#166534' : '#991b1b'}">
           ${c.owned ? '✓' : '✕'}
-        </span>
-      </td>
-    </tr>`).join('');
+        </div>
+      </div>
+      <div style="padding:2px 3px 3px">
+        <div style="font-family:monospace;font-size:6px;color:#9ca3af;margin-bottom:1px">${c.number}</div>
+        <div style="font-size:6px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
+      </div>
+    </div>`).join('');
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
     <title>${gameName} — Collection Print</title>
     <style>
-      body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
+      body { font-family: Arial, sans-serif; margin: 16px; color: #111; }
       h1 { font-size: 20px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
-      .meta { font-size: 12px; color: #666; margin-bottom: 16px; display: flex; gap: 24px; }
+      .meta { font-size: 12px; color: #666; margin-bottom: 16px; display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end; }
       .stat { display: inline-flex; flex-direction: column; gap: 2px; }
       .stat-l { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #999; }
       .stat-v { font-size: 18px; font-weight: 700; }
-      table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th { text-align: left; padding: 8px 8px; background: #f3f4f6; border-bottom: 2px solid #e5e7eb;
-           font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; }
-      td { border-bottom: 1px solid #f3f4f6; }
-      tr:last-child td { border-bottom: none; }
-      @page { margin: 16mm; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 4px; }
+      @page { margin: 12mm; }
       @media print { body { margin: 0; } }
     </style>
   </head><body>
@@ -621,19 +617,9 @@ function printView(game, mode) {
       <span class="stat"><span class="stat-l">Owned</span><span class="stat-v">${ownedCt.toLocaleString()}</span></span>
       <span class="stat"><span class="stat-l">Missing</span><span class="stat-v">${(total-ownedCt).toLocaleString()}</span></span>
       <span class="stat"><span class="stat-l">Completion</span><span class="stat-v">${pct}%</span></span>
-      <span style="margin-left:auto;font-size:12px;color:#999;align-self:flex-end">${label}</span>
+      <span style="margin-left:auto;font-size:11px;color:#999">${label}</span>
     </div>
-    <table>
-      <thead><tr>
-        <th style="width:50px">IMG</th>
-        <th style="width:120px">Number</th>
-        <th>Name</th>
-        <th style="width:180px">Set</th>
-        <th style="width:120px">Rarity</th>
-        <th style="width:70px;text-align:center">Owned</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div class="grid">${gridItems}</div>
     <script>window.onload = () => { window.print(); }<\/script>
   </body></html>`;
 
