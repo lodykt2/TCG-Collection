@@ -287,8 +287,20 @@ function switchGame(game) {
 }
 
 function updateNavBadge(game) {
-  const owned = state[game].cards.filter(c => c.owned).length;
-  document.getElementById('badge-' + game).textContent = owned + '/' + state[game].cards.length;
+  const cards    = state[game].cards;
+  const total    = cards.length;
+  const owned    = cards.filter(c => c.owned).length;
+  const filtered = getFiltered(game);
+  const f        = state[game].filters;
+  const hasFilter = f.set || f.rarity || f.owned || f.search;
+
+  if (hasFilter) {
+    const filteredOwned = filtered.filter(c => c.owned).length;
+    document.getElementById('badge-' + game).textContent =
+      filteredOwned + '/' + filtered.length + ' filtered';
+  } else {
+    document.getElementById('badge-' + game).textContent = owned + '/' + total;
+  }
 }
 
 // ── STATS ─────────────────────────────────────────────────────
@@ -378,6 +390,7 @@ function renderCards(game){
   const filtered=getFiltered(game);
   const el=document.getElementById('count-'+game);
   if(el)el.textContent=filtered.length+' cards';
+  updateNavBadge(game); // keep badge in sync with active filters
   const c=document.getElementById('cards-'+game);
   if(!c)return;
   if(!filtered.length){c.innerHTML='<div class="empty-state">// NO CARDS MATCH CURRENT FILTERS</div>';return;}
@@ -603,37 +616,19 @@ async function printView(game, mode) {
     }));
   }
 
-  // Maximum safe canvas width is ~8000px before browsers silently fail.
-  // At 10 columns: 8000 / 10 = 800px per card — matches source image resolution.
-  // Height is calculated dynamically so tall exports stay within limits.
-  const COLS    = 10;
-  const CARD_W  = 800;
-  const CARD_H  = 1067;  // 3:4 ratio — matches real card proportions
-  const GAP     = 8;
-  const PAD     = 24;
-  const HEADER  = 120;
-  const SCALE   = 1;     // No scaling needed — we're already at full resolution
-
-  // Max rows per page before canvas gets too tall (~7500px safe limit)
+  // 14 cols × 10 rows = 140 cards per page at 560×747px per card
+  const COLS              = 14;
+  const CARD_W            = 560;
+  const CARD_H            = 747;
+  const GAP               = 6;
+  const PAD               = 20;
+  const HEADER            = 100;
+  const TEXT_H            = 52;
+  const IMG_H             = CARD_H - TEXT_H;
   const MAX_ROWS_PER_PAGE = 10;
-  const COLS_USED         = 14;
-  const CARD_W_USED       = 560;
-  const CARD_H_USED       = 747;   // 3:4 ratio
-  const GAP_USED          = 6;
-  const PAD_USED          = 20;
-  const HEADER_USED       = 100;
-  const TEXT_H            = 52;    // space below image for number + name
-  const IMG_H             = CARD_H_USED - TEXT_H;
-  const ROWS_TOTAL        = Math.ceil(cards.length / COLS_USED);
+  const ROWS_TOTAL        = Math.ceil(cards.length / COLS);
   const PAGES             = Math.ceil(ROWS_TOTAL / MAX_ROWS_PER_PAGE);
-  const W                 = COLS_USED * CARD_W_USED + (COLS_USED - 1) * GAP_USED + PAD_USED * 2;
-  // Alias to match rest of code
-  const COLS   = COLS_USED;
-  const CARD_W = CARD_W_USED;
-  const CARD_H = CARD_H_USED;
-  const GAP    = GAP_USED;
-  const PAD    = PAD_USED;
-  const HEADER = HEADER_USED;
+  const W                 = COLS * CARD_W + (COLS - 1) * GAP + PAD * 2;
 
   const baseFilename = game + '-collection-' + (mode === 'all' ? 'all' : 'filtered');
   const headerLine   = `Total: ${total}  Owned: ${ownedCt}  Missing: ${total - ownedCt}  Completion: ${pct}%  —  ${label}`;
