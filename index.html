@@ -388,7 +388,11 @@ function renderGrid(cards,game){
   return`<div class="card-grid">`+cards.map(c=>`
     <div class="card-item ${c.owned?'owned':'unowned'}" id="ci-${game}-${c.rowIndex}">
       <div class="card-img-wrap">
-        ${c.imageUrl?`<img src="${x(c.imageUrl)}" alt="${x(c.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:``}
+        ${c.imageUrl
+          ? c.imageUrl.includes('gundam-gcg.com')
+            ? `<img data-proxy="${x(c.imageUrl)}" alt="${x(c.name)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`
+            : `<img src="${x(c.imageUrl)}" alt="${x(c.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+          : ``}
         <div class="card-img-placeholder" style="${c.imageUrl?'display:none':''}"><span>${x(c.number)}</span></div>
         ${c.owned?`<div class="owned-badge">✓</div>`:''}
       </div>
@@ -427,6 +431,40 @@ function sortBy(game,col){
   const s=state[game].sort;
   s.col===col?s.dir*=-1:(s.col=col,s.dir=1);
   renderCards(game);
+}
+
+// ── PROXIED IMAGE LOADER ─────────────────────────────────────
+// Uses IntersectionObserver so we only fetch Gundam images as they scroll into view,
+// not all 700+ at once which would hammer the Apps Script quota.
+
+let _proxyObserver = null;
+
+function initProxyObserver() {
+  if (_proxyObserver) _proxyObserver.disconnect();
+  _proxyObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const img = entry.target;
+      const url = img.dataset.proxy;
+      if (url) {
+        loadProxiedImage(img, url);
+        _proxyObserver.unobserve(img);
+        delete img.dataset.proxy;
+      }
+    });
+  }, { rootMargin: '200px' });
+
+  document.querySelectorAll('img[data-proxy]').forEach(img => {
+    _proxyObserver.observe(img);
+  });
+}
+
+// Patch renderCards to init observer after render
+const _origRenderCards = renderCards;
+function renderCards(game) {
+  _origRenderCards(game);
+  // Small delay so DOM is updated before we observe
+  setTimeout(initProxyObserver, 50);
 }
 
 // ── OWNERSHIP TOGGLE ──────────────────────────────────────────
@@ -484,6 +522,36 @@ function updateCardEl(game, rowIndex, owned) {
       pill.textContent = owned ? '✓ Yes' : '✕ No';
       pill.setAttribute('onclick', `toggleOwned('${game}',${rowIndex},${!owned})`);
     }
+  }
+}
+
+// ── IMAGE URL RESOLVER ───────────────────────────────────────
+// gundam-gcg.com blocks cross-origin requests (CORS).
+// We route those through our Apps Script proxy which fetches server-side.
+// All other image URLs (Digimon Bandai CDN, Riftbound Riot CDN) load fine directly.
+
+function resolveImgSrc(url) {
+  if (!url) return '';
+  // Proxy anything from gundam-gcg.com through Apps Script
+  if (url.includes('gundam-gcg.com')) {
+    return API_URL + '?action=img&url=' + encodeURIComponent(url);
+  }
+  return url;
+}
+
+// Wrap the proxy src in a data URI so <img> can display it
+// Called lazily when a card image enters view (via IntersectionObserver)
+async function loadProxiedImage(imgEl, url) {
+  try {
+    const proxyUrl = API_URL + '?action=img&url=' + encodeURIComponent(url);
+    const resp     = await fetch(proxyUrl);
+    const b64      = await resp.text();
+    if (b64) {
+      const mime = url.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+      imgEl.src = 'data:' + mime + ';base64,' + b64;
+    }
+  } catch(e) {
+    imgEl.style.display = 'none';
   }
 }
 
