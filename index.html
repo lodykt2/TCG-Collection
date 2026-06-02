@@ -382,6 +382,8 @@ function renderCards(game){
   if(!c)return;
   if(!filtered.length){c.innerHTML='<div class="empty-state">// NO CARDS MATCH CURRENT FILTERS</div>';return;}
   c.innerHTML=state[game].view==='grid'?renderGrid(filtered,game):renderTable(filtered,game);
+  // Lazily load proxied Gundam images as they scroll into view
+  setTimeout(initProxyObserver, 50);
 }
 
 function renderGrid(cards,game){
@@ -457,14 +459,6 @@ function initProxyObserver() {
   document.querySelectorAll('img[data-proxy]').forEach(img => {
     _proxyObserver.observe(img);
   });
-}
-
-// Patch renderCards to init observer after render
-const _origRenderCards = renderCards;
-function renderCards(game) {
-  _origRenderCards(game);
-  // Small delay so DOM is updated before we observe
-  setTimeout(initProxyObserver, 50);
 }
 
 // ── OWNERSHIP TOGGLE ──────────────────────────────────────────
