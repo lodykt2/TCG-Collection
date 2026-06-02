@@ -577,14 +577,19 @@ async function printView(game, mode) {
 
   // Pre-fetch all images as base64 in parallel batches
   async function fetchB64(url) {
+    if (!url) return null;
     try {
-      const resp = await fetch(url);
-      const blob = await resp.blob();
-      return await new Promise(res => {
-        const r = new FileReader();
-        r.onloadend = () => res(r.result);
-        r.readAsDataURL(blob);
-      });
+      // Route through Apps Script proxy to bypass CDN CORS restrictions.
+      // The proxy fetches the image server-side and returns base64 text.
+      const proxyUrl = API_URL + '?action=img&url=' + encodeURIComponent(url);
+      const resp     = await fetch(proxyUrl);
+      const b64text  = await resp.text();
+      if (!b64text) return null;
+      // Detect mime type from URL
+      const mime = url.endsWith('.webp') ? 'image/webp'
+                 : url.endsWith('.png')  ? 'image/png'
+                 : 'image/jpeg';
+      return 'data:' + mime + ';base64,' + b64text;
     } catch { return null; }
   }
 
