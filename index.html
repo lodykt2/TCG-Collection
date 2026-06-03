@@ -146,6 +146,81 @@
   [data-section="riftbound"] .card-item.owned:hover{border-color:var(--rift-border);box-shadow:0 0 18px var(--rift-glow)} [data-section="riftbound"] .owned-badge{background:var(--rift-glow);color:var(--rift-bright);border:1px solid var(--rift-border)} [data-section="riftbound"] .filter-btn.active{border-color:var(--rift-border);color:var(--rift-bright)}
 
   /* PRINT — handled via dedicated print window, not window.print() */
+  @media print {
+    *{ -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
+    header,.game-nav,.sub-nav,.binder-controls,.print-page-label,#toast { display:none!important; }
+    .game-section,.binder-view-toggle { display:none!important; }
+    .binder-section { display:none!important; }
+    .binder-section.print-target { display:block!important; }
+    .binder-main { padding:0!important; }
+    .a4-sheet { width:210mm; height:297mm; padding:10mm; gap:5mm; margin:0; border:none; border-radius:0; page-break-after:always; break-after:page; }
+    .a4-sheet:last-child { page-break-after:avoid; break-after:avoid; }
+    @page { size:A4 portrait; margin:0; }
+  }
+
+  /* SUB NAV */
+  .sub-nav { background:rgba(10,10,15,0.85); border-bottom:1px solid var(--border); display:flex; padding:0 48px; gap:0; }
+  .sub-nav.hidden { display:none; }
+  .sub-tab { font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:600; letter-spacing:2px; text-transform:uppercase; padding:10px 22px; border:none; background:none; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+  .sub-tab:hover { color:var(--text-primary); }
+  /* Themed active states per game */
+  [data-game="digimon"]   .sub-tab.active { color:var(--digi-bright);  border-bottom-color:var(--digi-accent); }
+  [data-game="gundam"]    .sub-tab.active { color:var(--gun-bright);   border-bottom-color:var(--gun-accent); }
+  [data-game="riftbound"] .sub-tab.active { color:var(--rift-bright);  border-bottom-color:var(--rift-accent); }
+  .binder-section { display:none; }
+  .binder-section.active { display:block; }
+
+
+
+  .page-tab:hover { color:var(--text-primary); }
+
+
+
+
+
+  /* BINDER PAGE STYLES */
+  .binder-controls { padding:20px 48px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; border-bottom:1px solid var(--border); }
+  .binder-select { font-family:'Exo 2',sans-serif; font-size:13px; background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); padding:7px 14px; border-radius:var(--radius-sm); cursor:pointer; outline:none; min-width:190px; }
+  .binder-main { padding:24px 48px 80px; }
+  .binder-view-toggle { display:flex; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; }
+  .bvbtn { font-family:'Exo 2',sans-serif; font-size:12px; font-weight:600; letter-spacing:1px; text-transform:uppercase; padding:7px 14px; border:none; background:none; color:var(--text-muted); cursor:pointer; transition:all 0.2s; }
+  .bvbtn.active { color:var(--text-primary); background:var(--bg-hover); }
+  .binder-info { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text-muted); margin-left:auto; }
+
+  /* Binder spread */
+  .binder-spread-wrap { display:flex; align-items:center; gap:16px; justify-content:center; margin-bottom:12px; }
+  .flip-btn { background:var(--bg-surface); border:1px solid var(--border); color:var(--text-primary); width:38px; height:38px; border-radius:var(--radius-sm); font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; flex-shrink:0; }
+  .flip-btn:hover { background:var(--bg-hover); }
+  .flip-btn:disabled { opacity:0.2; pointer-events:none; }
+  .binder-spread { display:flex; border:3px solid #2a2a35; border-radius:8px; overflow:hidden; background:#1a1a22; width:100%; max-width:820px; }
+  .binder-page { flex:1; background:#f4f4ef; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:3px; padding:3px; min-height:380px; }
+  .binder-spine { width:14px; background:#1a1a22; flex-shrink:0; border-left:2px solid #333; border-right:2px solid #333; }
+  .b-card { background:#fff; border-radius:4px; display:flex; flex-direction:column; align-items:center; padding:6px 5px 5px; gap:3px; overflow:hidden; }
+  .b-card.empty { background:#eae9e4; }
+  .b-card.cover { background:#dddcd6; display:flex; align-items:center; justify-content:center; grid-column:span 2; grid-row:span 2; }
+  .b-card img { width:66%; border-radius:3px; aspect-ratio:3/4; object-fit:cover; display:block; }
+  .b-card .b-set { font-size:6px; color:#bbb; font-family:monospace; align-self:flex-start; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+  .b-card .b-info { width:100%; border-top:0.5px solid #eee; padding-top:3px; text-align:center; }
+  .b-card .b-name { font-size:7.5px; font-weight:700; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .b-card .b-meta { font-size:6px; color:#999; font-family:monospace; margin-top:1px; }
+  .spread-label { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text-muted); text-align:center; min-width:100px; }
+
+  /* Print preview sheets */
+  .print-page-label { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; margin:24px 0 10px; display:flex; align-items:center; gap:12px; }
+  .print-page-label::after { content:''; flex:1; height:1px; background:var(--border); }
+  .a4-sheet { background:#fff; color:#000; width:794px; height:1123px; margin:0 auto 24px; padding:28px; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:16px; border:1px solid var(--border); border-radius:4px; }
+  .p-slot { border:1.5px solid #222; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:10px 8px 8px; background:#fff; overflow:hidden; position:relative; }
+  .p-slot.empty { border:1.5px dashed #ccc; background:#fafafa; }
+  .p-slot-tag { position:absolute; top:7px; left:8px; font-size:7px; font-family:'Share Tech Mono',monospace; color:#888; }
+  .p-img { flex:1; display:flex; align-items:center; justify-content:center; width:100%; padding:18px 12px 8px; }
+  .p-img img { max-width:80%; max-height:100%; object-fit:contain; border-radius:4px; }
+  .p-img-ph { width:60%; aspect-ratio:3/4; border:1px dashed #ddd; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#ccc; font-size:10px; }
+  .p-info { width:100%; border-top:0.5px solid #eee; padding-top:6px; text-align:center; }
+  .p-name { font-size:9.5px; font-weight:700; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .p-meta { font-size:7.5px; color:#777; font-family:'Share Tech Mono',monospace; margin-top:2px; }
+  .p-slot::before,.p-slot::after { content:''; position:absolute; width:8px; height:8px; border-color:#ccc; border-style:solid; }
+  .p-slot::before { top:3px; left:3px; border-width:1px 0 0 1px; }
+  .p-slot::after  { bottom:3px; right:3px; border-width:0 1px 1px 0; }
 
   @media(max-width:600px){
     header,.game-nav,main{padding-left:16px;padding-right:16px}
@@ -169,16 +244,32 @@
   </div>
 </header>
 
-<nav class="game-nav">
+<!-- Game nav -->
+<nav class="game-nav" id="game-nav">
   <button class="nav-tab active" data-game="digimon"   onclick="switchGame('digimon')"  >⬡ Digimon   <span class="nav-badge" id="badge-digimon">—</span></button>
   <button class="nav-tab"        data-game="gundam"    onclick="switchGame('gundam')"   >◈ Gundam    <span class="nav-badge" id="badge-gundam">—</span></button>
   <button class="nav-tab"        data-game="riftbound" onclick="switchGame('riftbound')">✦ Riftbound <span class="nav-badge" id="badge-riftbound">—</span></button>
 </nav>
 
-<main>
+<!-- Sub nav — per game: Collection | Binder -->
+<nav class="sub-nav" id="sub-nav-digimon" data-game="digimon">
+  <button class="sub-tab active" data-game="digimon" data-view="collection" onclick="switchView('digimon','collection')">Collection</button>
+  <button class="sub-tab"        data-game="digimon" data-view="binder"     onclick="switchView('digimon','binder')">Binder</button>
+</nav>
+<nav class="sub-nav hidden" id="sub-nav-gundam" data-game="gundam">
+  <button class="sub-tab active" data-game="gundam" data-view="collection" onclick="switchView('gundam','collection')">Collection</button>
+  <button class="sub-tab"        data-game="gundam" data-view="binder"     onclick="switchView('gundam','binder')">Binder</button>
+</nav>
+<nav class="sub-nav hidden" id="sub-nav-riftbound" data-game="riftbound">
+  <button class="sub-tab active" data-game="riftbound" data-view="collection" onclick="switchView('riftbound','collection')">Collection</button>
+  <button class="sub-tab"        data-game="riftbound" data-view="binder"     onclick="switchView('riftbound','binder')">Binder</button>
+</nav>
+
+<main id="main-area">
   <div id="setup-notice"></div>
 
-  <section class="game-section active" id="section-digimon"   data-section="digimon">
+  <!-- COLLECTION VIEWS -->
+  <section class="game-section active" id="section-digimon" data-section="digimon">
     <div class="section-header">
       <div><div class="section-game-label">// DIGIMON TCG</div><h2 class="section-title">Card Collection</h2></div>
       <div class="stats-row" id="stats-digimon"></div>
@@ -186,8 +277,7 @@
     <div class="toolbar" id="toolbar-digimon"></div>
     <div id="cards-digimon"><div class="loading-state"><div class="spinner"></div>Loading…</div></div>
   </section>
-
-  <section class="game-section" id="section-gundam"    data-section="gundam">
+  <section class="game-section" id="section-gundam" data-section="gundam">
     <div class="section-header">
       <div><div class="section-game-label">// GUNDAM CARD GAME</div><h2 class="section-title">Card Collection</h2></div>
       <div class="stats-row" id="stats-gundam"></div>
@@ -195,7 +285,6 @@
     <div class="toolbar" id="toolbar-gundam"></div>
     <div id="cards-gundam"><div class="loading-state"><div class="spinner"></div>Loading…</div></div>
   </section>
-
   <section class="game-section" id="section-riftbound" data-section="riftbound">
     <div class="section-header">
       <div><div class="section-game-label">// RIFTBOUND TCG</div><h2 class="section-title">Card Collection</h2></div>
@@ -203,6 +292,44 @@
     </div>
     <div class="toolbar" id="toolbar-riftbound"></div>
     <div id="cards-riftbound"><div class="loading-state"><div class="spinner"></div>Loading…</div></div>
+  </section>
+
+  <!-- BINDER VIEWS -->
+  <section class="binder-section" id="binder-digimon"   data-game="digimon">
+    <div class="binder-controls">
+      <select class="binder-select" id="b-set-digimon"   onchange="bOnSetChange('digimon')"   ><option value="">All sets…</option></select>
+      <div class="binder-view-toggle">
+        <button class="bvbtn active" id="bvbtn-binder-digimon"   onclick="bSetView('digimon','binder')" >📖 Binder</button>
+        <button class="bvbtn"        id="bvbtn-print-digimon"    onclick="bSetView('digimon','print')"  >☰ Print Preview</button>
+      </div>
+      <button class="btn-action" id="b-print-digimon"   onclick="window.print()" disabled>🖨 Print</button>
+      <span class="binder-info" id="b-info-digimon"></span>
+    </div>
+    <div class="binder-main" id="binder-main-digimon"><div class="empty-state">Select a set to preview</div></div>
+  </section>
+  <section class="binder-section" id="binder-gundam"    data-game="gundam">
+    <div class="binder-controls">
+      <select class="binder-select" id="b-set-gundam"    onchange="bOnSetChange('gundam')"    ><option value="">All sets…</option></select>
+      <div class="binder-view-toggle">
+        <button class="bvbtn active" id="bvbtn-binder-gundam"    onclick="bSetView('gundam','binder')"  >📖 Binder</button>
+        <button class="bvbtn"        id="bvbtn-print-gundam"     onclick="bSetView('gundam','print')"   >☰ Print Preview</button>
+      </div>
+      <button class="btn-action" id="b-print-gundam" onclick="bPrint('gundam')" disabled>🖨 Print</button>
+      <span class="binder-info" id="b-info-gundam"></span>
+    </div>
+    <div class="binder-main" id="binder-main-gundam"><div class="empty-state">Select a set to preview</div></div>
+  </section>
+  <section class="binder-section" id="binder-riftbound" data-game="riftbound">
+    <div class="binder-controls">
+      <select class="binder-select" id="b-set-riftbound" onchange="bOnSetChange('riftbound')" ><option value="">All sets…</option></select>
+      <div class="binder-view-toggle">
+        <button class="bvbtn active" id="bvbtn-binder-riftbound" onclick="bSetView('riftbound','binder')">📖 Binder</button>
+        <button class="bvbtn"        id="bvbtn-print-riftbound"  onclick="bSetView('riftbound','print')" >☰ Print Preview</button>
+      </div>
+      <button class="btn-action" id="b-print-riftbound" onclick="bPrint('riftbound')" disabled>🖨 Print</button>
+      <span class="binder-info" id="b-info-riftbound"></span>
+    </div>
+    <div class="binder-main" id="binder-main-riftbound"><div class="empty-state">Select a set to preview</div></div>
   </section>
 </main>
 
@@ -283,7 +410,50 @@ async function reloadAll() {
 // ── NAV ───────────────────────────────────────────────────────
 function switchGame(game) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.game === game));
-  document.querySelectorAll('.game-section').forEach(s => s.classList.toggle('active', s.id === 'section-' + game));
+
+  // Show correct sub-nav
+  document.querySelectorAll('.sub-nav').forEach(n => {
+    n.classList.toggle('hidden', n.dataset.game !== game);
+  });
+
+  // Restore whichever view (collection/binder) was last active for this game
+  const activeView = gameViews[game] || 'collection';
+  applyView(game, activeView);
+}
+
+// Track which sub-view each game is on
+const gameViews = { digimon:'collection', gundam:'collection', riftbound:'collection' };
+// Track binder spread and view mode per game
+const binderState = {
+  digimon:   { spread:0, view:'binder', cards:[] },
+  gundam:    { spread:0, view:'binder', cards:[] },
+  riftbound: { spread:0, view:'binder', cards:[] },
+};
+
+function switchView(game, view) {
+  gameViews[game] = view;
+  // Update sub-tab active state
+  document.querySelectorAll(`#sub-nav-${game} .sub-tab`).forEach(t =>
+    t.classList.toggle('active', t.dataset.view === view)
+  );
+  applyView(game, view);
+}
+
+function applyView(game, view) {
+  // Hide all collection sections and binder sections
+  document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.binder-section').forEach(s => s.classList.remove('active'));
+
+  if (view === 'collection') {
+    document.getElementById('section-' + game)?.classList.add('active');
+  } else {
+    const bs = document.getElementById('binder-' + game);
+    if (bs) {
+      bs.classList.add('active');
+      // Populate set selector if not yet done
+      bPopulateSets(game);
+    }
+  }
 }
 
 function updateNavBadge(game) {
@@ -792,6 +962,150 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.lineTo(x, y + r);
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
+}
+
+// ── BINDER ───────────────────────────────────────────────────
+const B_PER_PAGE = 4, P_PER_PAGE = 9;
+
+function bPopulateSets(game) {
+  const sel = document.getElementById('b-set-' + game);
+  if (!sel || sel.dataset.populated === 'true') return;
+  const missing = (state[game]?.cards || []).filter(c => !c.owned);
+  const seen = new Set(), sets = [];
+  for (const c of missing) { if (c.setName && !seen.has(c.setName)) { seen.add(c.setName); sets.push(c.setName); } }
+  sel.innerHTML = '<option value="">All sets…</option>';
+  sets.forEach(s => {
+    const cnt = missing.filter(c => c.setName === s).length;
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s + ' (' + cnt + ' missing)';
+    sel.appendChild(o);
+  });
+  sel.dataset.populated = 'true';
+  // Auto-select first set
+  if (sets.length) { sel.value = sets[0]; bOnSetChange(game); }
+  else document.getElementById('binder-main-' + game).innerHTML = '<div class="empty-state">✓ No missing cards!</div>';
+}
+
+function bOnSetChange(game) {
+  const set     = document.getElementById('b-set-' + game).value;
+  const cards   = (state[game]?.cards || []).filter(c => !c.owned && (!set || c.setName === set));
+  const bs      = binderState[game];
+  bs.cards      = cards;
+  bs.spread     = 0;
+  const tp = Math.ceil(cards.length / B_PER_PAGE);
+  document.getElementById('b-info-' + game).textContent =
+    cards.length + ' missing · ' + tp + ' page' + (tp !== 1 ? 's' : '');
+  document.getElementById('b-print-' + game).disabled = cards.length === 0;
+  bRender(game);
+}
+
+function bSetView(game, v) {
+  binderState[game].view = v;
+  document.getElementById('bvbtn-binder-' + game).classList.toggle('active', v === 'binder');
+  document.getElementById('bvbtn-print-'  + game).classList.toggle('active', v === 'print');
+  bRender(game);
+}
+
+function bRender(game) {
+  const bs = binderState[game];
+  if (!bs.cards.length) {
+    document.getElementById('binder-main-' + game).innerHTML = '<div class="empty-state">✓ No missing cards in this set!</div>';
+    return;
+  }
+  bs.view === 'binder' ? bRenderBinder(game) : bRenderPrint(game);
+}
+
+function bTotalPages(game)   { return Math.ceil(binderState[game].cards.length / B_PER_PAGE); }
+function bTotalSpreads(game) { return Math.ceil((bTotalPages(game) + 1) / 2); }
+
+function bGetPageCards(game, pageIdx) {
+  if (pageIdx <= 0) return null;
+  const start = (pageIdx - 1) * B_PER_PAGE;
+  const cards = binderState[game].cards;
+  if (start >= cards.length) return null;
+  return cards.slice(start, start + B_PER_PAGE);
+}
+
+function bCardSlotHTML(c) {
+  if (!c) return '<div class="b-card empty"></div>';
+  return `<div class="b-card">
+    <div class="b-set">${x(c.setName)}</div>
+    ${c.imageUrl ? `<img src="${x(c.imageUrl)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+    <div class="b-info"><div class="b-name">${x(c.name)}</div><div class="b-meta">${x(c.number)} · ${x(c.rarity)}</div></div>
+  </div>`;
+}
+
+function bPageHTML(game, pageIdx) {
+  if (pageIdx === 0) return `<div class="b-card cover"><div style="text-align:center;color:#aaa;font-family:monospace;font-size:11px"><div style="font-size:22px;margin-bottom:6px">📖</div>Cover</div></div><div class="b-card empty"></div><div class="b-card empty"></div><div class="b-card empty"></div>`;
+  const cards = bGetPageCards(game, pageIdx);
+  if (!cards) return '<div class="b-card empty"></div>'.repeat(4);
+  let html = '';
+  for (let i = 0; i < 4; i++) html += bCardSlotHTML(cards[i] || null);
+  return html;
+}
+
+function bRenderBinder(game) {
+  const bs  = binderState[game];
+  const ts  = bTotalSpreads(game);
+  const li  = bs.spread === 0 ? 0 : bs.spread * 2;
+  const ri  = bs.spread === 0 ? 1 : bs.spread * 2 + 1;
+  const ll  = li === 0 ? 'Cover' : 'Page ' + li;
+  const rl  = ri > bTotalPages(game) ? '—' : 'Page ' + ri;
+  const fc  = Math.max(1, (li - 1) * 4 + 1);
+  const lc  = Math.min(ri * 4, bs.cards.length);
+
+  document.getElementById('binder-main-' + game).innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-muted)">${ll} &amp; ${rl} · Cards ${fc}–${lc} of ${bs.cards.length}</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="flip-btn" onclick="bFlip('${game}',-1)" ${bs.spread===0?'disabled':''}>&#8249;</button>
+        <span class="spread-label">${bs.spread+1} / ${ts}</span>
+        <button class="flip-btn" onclick="bFlip('${game}',1)"  ${bs.spread>=ts-1?'disabled':''}>&#8250;</button>
+      </div>
+    </div>
+    <div class="binder-spread-wrap">
+      <div class="binder-spread">
+        <div class="binder-page">${bPageHTML(game, li)}</div>
+        <div class="binder-spine"></div>
+        <div class="binder-page">${bPageHTML(game, ri)}</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:10px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted)">Switch to Print Preview to verify A4 sheets before printing</div>`;
+}
+
+function bFlip(game, dir) {
+  const bs   = binderState[game];
+  const next = bs.spread + dir;
+  if (next < 0 || next >= bTotalSpreads(game)) return;
+  bs.spread = next;
+  bRenderBinder(game);
+}
+
+function bPrint(game) {
+  // Switch to print preview first, then print
+  bSetView(game, 'print');
+  document.querySelectorAll('.binder-section').forEach(s => s.classList.remove('print-target'));
+  document.getElementById('binder-' + game)?.classList.add('print-target');
+  setTimeout(() => window.print(), 300);
+}
+
+function bRenderPrint(game) {
+  const cards = binderState[game].cards;
+  const pages = [];
+  for (let i = 0; i < cards.length; i += P_PER_PAGE) pages.push(cards.slice(i, i + P_PER_PAGE));
+  let html = '';
+  pages.forEach((pg, pi) => {
+    html += `<div class="print-page-label">Sheet ${pi+1} of ${pages.length}</div><div class="a4-sheet">`;
+    pg.forEach(c => {
+      html += `<div class="p-slot"><div class="p-slot-tag">${x(c.setName)}</div>
+        <div class="p-img">${c.imageUrl?`<img src="${x(c.imageUrl)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="p-img-ph" style="${c.imageUrl?'display:none':''}">no image</div></div>
+        <div class="p-info"><div class="p-name">${x(c.name)}</div><div class="p-meta">${x(c.number)} · ${x(c.rarity)}</div></div>
+      </div>`;
+    });
+    for (let i = pg.length; i < P_PER_PAGE; i++) html += '<div class="p-slot empty"></div>';
+    html += '</div>';
+  });
+  document.getElementById('binder-main-' + game).innerHTML = html;
 }
 
 // ── TOAST ─────────────────────────────────────────────────────
