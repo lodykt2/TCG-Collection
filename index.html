@@ -199,6 +199,9 @@
   .b-card.empty { background:#eae9e4; }
   .b-card.cover { background:#dddcd6; display:flex; align-items:center; justify-content:center; grid-column:span 2; grid-row:span 2; }
   .b-card img { width:66%; border-radius:3px; aspect-ratio:3/4; object-fit:cover; display:block; }
+  .b-card.unowned { background:#f0efe9; }
+  .b-card.unowned img { filter:grayscale(100%); opacity:0.7; }
+  .b-card.unowned .b-name { color:#888; }
   .b-card .b-set { font-size:6px; color:#bbb; font-family:monospace; align-self:flex-start; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
   .b-card .b-info { width:100%; border-top:0.5px solid #eee; padding-top:3px; text-align:center; }
   .b-card .b-name { font-size:7.5px; font-weight:700; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -970,32 +973,34 @@ const B_PER_PAGE = 4, P_PER_PAGE = 9;
 function bPopulateSets(game) {
   const sel = document.getElementById('b-set-' + game);
   if (!sel || sel.dataset.populated === 'true') return;
-  const missing = (state[game]?.cards || []).filter(c => !c.owned);
+  const all = state[game]?.cards || [];
   const seen = new Set(), sets = [];
-  for (const c of missing) { if (c.setName && !seen.has(c.setName)) { seen.add(c.setName); sets.push(c.setName); } }
+  for (const c of all) { if (c.setName && !seen.has(c.setName)) { seen.add(c.setName); sets.push(c.setName); } }
   sel.innerHTML = '<option value="">All sets…</option>';
   sets.forEach(s => {
-    const cnt = missing.filter(c => c.setName === s).length;
+    const setCards  = all.filter(c => c.setName === s);
+    const missing   = setCards.filter(c => !c.owned).length;
     const o = document.createElement('option');
-    o.value = s; o.textContent = s + ' (' + cnt + ' missing)';
+    o.value = s; o.textContent = s + ' (' + missing + ' missing / ' + setCards.length + ' total)';
     sel.appendChild(o);
   });
   sel.dataset.populated = 'true';
-  // Auto-select first set
   if (sets.length) { sel.value = sets[0]; bOnSetChange(game); }
-  else document.getElementById('binder-main-' + game).innerHTML = '<div class="empty-state">✓ No missing cards!</div>';
+  else document.getElementById('binder-main-' + game).innerHTML = '<div class="empty-state">No cards found!</div>';
 }
 
 function bOnSetChange(game) {
-  const set     = document.getElementById('b-set-' + game).value;
-  const cards   = (state[game]?.cards || []).filter(c => !c.owned && (!set || c.setName === set));
-  const bs      = binderState[game];
-  bs.cards      = cards;
-  bs.spread     = 0;
-  const tp = Math.ceil(cards.length / B_PER_PAGE);
+  const set   = document.getElementById('b-set-' + game).value;
+  const all   = (state[game]?.cards || []).filter(c => !set || c.setName === set);
+  const bs    = binderState[game];
+  bs.cards    = all;
+  bs.spread   = 0;
+  const total   = all.length;
+  const missing = all.filter(c => !c.owned).length;
+  const tp = Math.ceil(total / B_PER_PAGE);
   document.getElementById('b-info-' + game).textContent =
-    cards.length + ' missing · ' + tp + ' page' + (tp !== 1 ? 's' : '');
-  document.getElementById('b-print-' + game).disabled = cards.length === 0;
+    missing + ' missing / ' + total + ' total · ' + tp + ' page' + (tp !== 1 ? 's' : '');
+  document.getElementById('b-print-' + game).disabled = missing === 0;
   bRender(game);
 }
 
@@ -1009,7 +1014,7 @@ function bSetView(game, v) {
 function bRender(game) {
   const bs = binderState[game];
   if (!bs.cards.length) {
-    document.getElementById('binder-main-' + game).innerHTML = '<div class="empty-state">✓ No missing cards in this set!</div>';
+    document.getElementById('binder-main-' + game).innerHTML = '<div class="empty-state">No cards found for this set.</div>';
     return;
   }
   bs.view === 'binder' ? bRenderBinder(game) : bRenderPrint(game);
@@ -1028,7 +1033,8 @@ function bGetPageCards(game, pageIdx) {
 
 function bCardSlotHTML(c) {
   if (!c) return '<div class="b-card empty"></div>';
-  return `<div class="b-card">
+  const cls = c.owned ? 'b-card' : 'b-card unowned';
+  return `<div class="${cls}">
     <div class="b-set">${x(c.setName)}</div>
     ${c.imageUrl ? `<img src="${x(c.imageUrl)}" loading="lazy" onerror="this.style.display='none'">` : ''}
     <div class="b-info"><div class="b-name">${x(c.name)}</div><div class="b-meta">${x(c.number)} · ${x(c.rarity)}</div></div>
@@ -1090,7 +1096,8 @@ function bPrint(game) {
 }
 
 function bRenderPrint(game) {
-  const cards = binderState[game].cards;
+  // Print preview shows only missing cards — no need to print owned ones
+  const cards = binderState[game].cards.filter(c => !c.owned);
   const pages = [];
   for (let i = 0; i < cards.length; i += P_PER_PAGE) pages.push(cards.slice(i, i + P_PER_PAGE));
   let html = '';
