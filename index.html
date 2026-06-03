@@ -1034,9 +1034,15 @@ function bGetPageCards(game, pageIdx) {
 function bCardSlotHTML(c) {
   if (!c) return '<div class="b-card empty"></div>';
   const cls = c.owned ? 'b-card' : 'b-card unowned';
+  // Gundam images need the proxy — use data-proxy attribute picked up by IntersectionObserver
+  const imgHTML = c.imageUrl
+    ? c.imageUrl.includes('gundam-gcg.com')
+      ? `<img data-proxy="${x(c.imageUrl)}" alt="${x(c.name)}" style="width:66%;border-radius:3px;aspect-ratio:3/4;object-fit:cover;display:block" onerror="this.style.display='none'">`
+      : `<img src="${x(c.imageUrl)}" loading="lazy" onerror="this.style.display='none'">`
+    : '';
   return `<div class="${cls}">
     <div class="b-set">${x(c.setName)}</div>
-    ${c.imageUrl ? `<img src="${x(c.imageUrl)}" loading="lazy" onerror="this.style.display='none'">` : ''}
+    ${imgHTML}
     <div class="b-info"><div class="b-name">${x(c.name)}</div><div class="b-meta">${x(c.number)} · ${x(c.rarity)}</div></div>
   </div>`;
 }
@@ -1077,6 +1083,8 @@ function bRenderBinder(game) {
       </div>
     </div>
     <div style="text-align:center;margin-top:10px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted)">Switch to Print Preview to verify A4 sheets before printing</div>`;
+  // Trigger proxy loader for Gundam images
+  setTimeout(initProxyObserver, 50);
 }
 
 function bFlip(game, dir) {
