@@ -1127,17 +1127,39 @@ function bPrint(game) {
   setTimeout(() => window.print(), 300);
 }
 
-function bRenderPrint(game) {
-  // Print preview shows only missing cards — no need to print owned ones
+async function bRenderPrint(game) {
+  // Print preview shows only missing cards
   const cards = binderState[game].cards.filter(c => !c.owned);
   const pages = [];
   for (let i = 0; i < cards.length; i += P_PER_PAGE) pages.push(cards.slice(i, i + P_PER_PAGE));
+
+  // Pre-fetch Gundam images via proxy so they render in print
+  const isGundam = game === 'gundam';
+  if (isGundam) {
+    toast('⏳ Loading images for print…', 'ok');
+    const BATCH = 9;
+    const withImg = cards.filter(c => c.imageUrl);
+    for (let i = 0; i < withImg.length; i += BATCH) {
+      await Promise.all(withImg.slice(i, i + BATCH).map(async c => {
+        if (!c._printB64) {
+          try {
+            const proxyUrl = API_URL + '?action=img&url=' + encodeURIComponent(c.imageUrl);
+            const resp = await fetch(proxyUrl);
+            const b64  = await resp.text();
+            if (b64) c._printB64 = 'data:image/webp;base64,' + b64;
+          } catch(e) { /* use original url as fallback */ }
+        }
+      }));
+    }
+  }
+
   let html = '';
   pages.forEach((pg, pi) => {
     html += `<div class="print-page-label">Sheet ${pi+1} of ${pages.length}</div><div class="a4-sheet">`;
     pg.forEach(c => {
+      const imgSrc = isGundam ? (c._printB64 || c.imageUrl) : c.imageUrl;
       html += `<div class="p-slot"><div class="p-slot-tag">${x(c.setName)}</div>
-        <div class="p-img">${c.imageUrl?`<img src="${x(c.imageUrl)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="p-img-ph" style="${c.imageUrl?'display:none':''}">no image</div></div>
+        <div class="p-img">${imgSrc ? `<img src="${x(imgSrc)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}<div class="p-img-ph" style="${imgSrc?'display:none':''}">no image</div></div>
         <div class="p-info"><div class="p-name">${x(c.name)}</div><div class="p-meta">${x(c.number)} · ${x(c.rarity)}</div></div>
       </div>`;
     });
@@ -1145,6 +1167,7 @@ function bRenderPrint(game) {
     html += '</div>';
   });
   document.getElementById('binder-main-' + game).innerHTML = html;
+  if (isGundam) toast('✓ Images ready for print', 'ok');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────
