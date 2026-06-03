@@ -972,21 +972,40 @@ const B_PER_PAGE = 4, P_PER_PAGE = 9;
 
 function bPopulateSets(game) {
   const sel = document.getElementById('b-set-' + game);
-  if (!sel || sel.dataset.populated === 'true') return;
+  if (!sel) return;
+
   const all = state[game]?.cards || [];
+  // If data not loaded yet, show loading state and retry when ready
+  if (!all.length) {
+    document.getElementById('binder-main-' + game).innerHTML =
+      '<div class="empty-state"><div class="spinner"></div>Loading…</div>';
+    return;
+  }
+
+  // Only rebuild if not yet populated or card count changed (handles late data load)
+  const currentCount = parseInt(sel.dataset.cardCount || '0');
+  if (sel.dataset.populated === 'true' && currentCount === all.length) return;
+
   const seen = new Set(), sets = [];
   for (const c of all) { if (c.setName && !seen.has(c.setName)) { seen.add(c.setName); sets.push(c.setName); } }
+
+  const prevVal = sel.value; // preserve current selection if possible
   sel.innerHTML = '<option value="">All sets…</option>';
   sets.forEach(s => {
-    const setCards  = all.filter(c => c.setName === s);
-    const missing   = setCards.filter(c => !c.owned).length;
+    const setCards = all.filter(c => c.setName === s);
+    const missing  = setCards.filter(c => !c.owned).length;
     const o = document.createElement('option');
     o.value = s; o.textContent = s + ' (' + missing + ' missing / ' + setCards.length + ' total)';
     sel.appendChild(o);
   });
   sel.dataset.populated = 'true';
-  if (sets.length) { sel.value = sets[0]; bOnSetChange(game); }
-  else document.getElementById('binder-main-' + game).innerHTML = '<div class="empty-state">No cards found!</div>';
+  sel.dataset.cardCount  = all.length;
+
+  // Restore previous selection or auto-select first set
+  if (prevVal && sets.includes(prevVal)) sel.value = prevVal;
+  else if (sets.length) sel.value = sets[0];
+
+  bOnSetChange(game);
 }
 
 function bOnSetChange(game) {
