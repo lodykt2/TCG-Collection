@@ -1102,8 +1102,13 @@ function bRenderBinder(game) {
       </div>
     </div>
     <div style="text-align:center;margin-top:10px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted)">Switch to Print Preview to verify A4 sheets before printing</div>`;
-  // Trigger proxy loader for Gundam images
-  setTimeout(initProxyObserver, 50);
+  // Load Gundam proxy images immediately — binder shows only 8 cards at once
+  setTimeout(() => {
+    document.querySelectorAll('#binder-main-' + game + ' img[data-proxy]').forEach(img => {
+      const url = img.dataset.proxy;
+      if (url) { loadProxiedImage(img, url); delete img.dataset.proxy; }
+    });
+  }, 100);
 }
 
 function bFlip(game, dir) {
