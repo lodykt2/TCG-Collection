@@ -1070,9 +1070,10 @@ function bPageHTML(game, pageIdx) {
   if (pageIdx === 0) return `<div class="b-card cover"><div style="text-align:center;color:#aaa;font-family:monospace;font-size:11px"><div style="font-size:22px;margin-bottom:6px">📖</div>Cover</div></div><div class="b-card empty"></div><div class="b-card empty"></div><div class="b-card empty"></div>`;
   const cards = bGetPageCards(game, pageIdx);
   if (!cards) return '<div class="b-card empty"></div>'.repeat(4);
-  let html = '';
-  for (let i = 0; i < 4; i++) html += bCardSlotHTML(cards[i] || null);
-  return html;
+  // Order: right-col first then left-col, so within each 2×2 page:
+  // slot index: 1(top-right), 0(top-left), 3(bottom-right), 2(bottom-left)
+  const order = [1, 0, 3, 2];
+  return order.map(i => bCardSlotHTML(cards[i] || null)).join('');
 }
 
 function bRenderBinder(game) {
