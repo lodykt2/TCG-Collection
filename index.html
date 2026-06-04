@@ -1248,14 +1248,15 @@ async function bPrint(game) {
     // Image
     const imgData = dataUrls[i];
     if (imgData) {
-      const imgX = x + CARD_W * 0.08;
-      const imgW = CARD_W * 0.84;
+      const imgW = CARD_W * 0.55;           // ~55% of card width
+      const imgX = x + (CARD_W - imgW) / 2; // centered horizontally
+      const imgH2 = imgW * (4/3);            // 3:4 card ratio
+      const imgY = y + (IMG_H - imgH2) / 2 + 4; // centered vertically
       try {
-        doc.addImage(imgData, 'JPEG', imgX, y + 4, imgW, IMG_H, '', 'NONE');
+        doc.addImage(imgData, 'JPEG', imgX, imgY, imgW, imgH2, '', 'NONE');
       } catch(e) {
-        // Draw placeholder if addImage fails
         doc.setFillColor(240);
-        doc.rect(imgX, y + 4, imgW, IMG_H, 'F');
+        doc.rect(imgX, imgY, imgW, imgH2, 'F');
       }
     } else {
       doc.setFillColor(240);
