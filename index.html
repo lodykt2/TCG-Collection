@@ -411,6 +411,27 @@ async function reloadAll() {
 }
 
 // ── NAV ───────────────────────────────────────────────────────
+// ── DIGIMON SET SORT ─────────────────────────────────────────
+function digimonSetSortKey(setName) {
+  const s = (setName || '').toUpperCase();
+  if (s.startsWith('BT'))  return '0-' + s;
+  if (s.startsWith('EX'))  return '1-' + s;
+  if (s.startsWith('ST'))  return '2-' + s;
+  if (s.startsWith('AD'))  return '3-' + s;
+  if (s.startsWith('RB'))  return '4-' + s;
+  if (s === 'LIMITED')     return '5-' + s;
+  if (s === 'PROMO')       return '6-' + s;
+  return '7-' + s;
+}
+
+function sortSets(game, sets) {
+  if (game !== 'digimon') return sets.sort();
+  return sets.slice().sort((a, b) => {
+    const ka = digimonSetSortKey(a), kb = digimonSetSortKey(b);
+    return ka < kb ? -1 : ka > kb ? 1 : 0;
+  });
+}
+
 function switchGame(game) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.game === game));
 
@@ -491,7 +512,7 @@ function renderStats(game) {
 // ── TOOLBAR ───────────────────────────────────────────────────
 function buildToolbar(game) {
   const cards    = state[game].cards;
-  const sets     = [...new Set(cards.map(c=>c.setName).filter(Boolean))].sort();
+  const sets     = sortSets(game, [...new Set(cards.map(c=>c.setName).filter(Boolean))]);
   const rarities = [...new Set(cards.map(c=>c.rarity).filter(Boolean))].sort();
   const opts = (arr,ph) => `<option value="">${ph}</option>` + arr.map(v=>`<option value="${x(v)}">${x(v)}</option>`).join('');
 
@@ -986,8 +1007,9 @@ function bPopulateSets(game) {
   const currentCount = parseInt(sel.dataset.cardCount || '0');
   if (sel.dataset.populated === 'true' && currentCount === all.length) return;
 
-  const seen = new Set(), sets = [];
-  for (const c of all) { if (c.setName && !seen.has(c.setName)) { seen.add(c.setName); sets.push(c.setName); } }
+  const seen = new Set(), rawSets = [];
+  for (const c of all) { if (c.setName && !seen.has(c.setName)) { seen.add(c.setName); rawSets.push(c.setName); } }
+  const sets = sortSets(game, rawSets);
 
   const prevVal = sel.value; // preserve current selection if possible
   sel.innerHTML = '<option value="">All sets…</option>';
