@@ -242,6 +242,60 @@
   .p-slot::before { top:2px; left:2px; border-width:1px 0 0 1px; }
   .p-slot::after  { bottom:2px; right:2px; border-width:0 1px 1px 0; }
 
+  /* SETTINGS */
+  .settings-btn { background:var(--bg-surface); border:1px solid var(--border); color:var(--text-muted); width:36px; height:36px; border-radius:var(--radius-sm); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+  .settings-btn:hover { background:var(--bg-hover); color:var(--text-primary); }
+
+  .settings-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; display:none; align-items:flex-start; justify-content:flex-end; padding:72px 24px 0; backdrop-filter:blur(4px); }
+  .settings-overlay.open { display:flex; }
+
+  .settings-panel { background:#13131c; border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius-lg); width:380px; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.6); display:flex; flex-direction:column; }
+  .settings-header { padding:18px 20px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:#13131c; z-index:1; }
+  .settings-title { font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700; letter-spacing:2px; text-transform:uppercase; }
+  .settings-close { background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer; padding:4px; line-height:1; }
+  .settings-close:hover { color:var(--text-primary); }
+  .settings-body { padding:16px 20px 24px; display:flex; flex-direction:column; gap:24px; }
+
+  .settings-section { display:flex; flex-direction:column; gap:12px; }
+  .settings-section-title { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--text-muted); padding-bottom:6px; border-bottom:1px solid var(--border); }
+
+  .setting-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .setting-label { font-size:13px; color:var(--text-primary); }
+  .setting-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+  /* Toggle switch */
+  .toggle { position:relative; width:40px; height:22px; flex-shrink:0; }
+  .toggle input { opacity:0; width:0; height:0; }
+  .toggle-track { position:absolute; inset:0; background:var(--bg-hover); border-radius:99px; cursor:pointer; transition:background 0.2s; border:1px solid var(--border); }
+  .toggle input:checked + .toggle-track { background:var(--digi-accent); border-color:var(--digi-accent); }
+  .toggle-track::after { content:''; position:absolute; width:16px; height:16px; left:2px; top:2px; background:#fff; border-radius:50%; transition:transform 0.2s; }
+  .toggle input:checked + .toggle-track::after { transform:translateX(18px); }
+
+  /* Color swatches */
+  .color-swatches { display:flex; gap:8px; flex-wrap:wrap; }
+  .swatch { width:26px; height:26px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 0.15s; }
+  .swatch.active { border-color:#fff; transform:scale(1.15); }
+  .swatch-custom { width:26px; height:26px; border-radius:50%; border:1px solid var(--border); overflow:hidden; cursor:pointer; }
+  .swatch-custom input[type=color] { width:200%; height:200%; margin:-50%; border:none; cursor:pointer; }
+
+  /* Binder grid selector */
+  .grid-options { display:flex; gap:8px; flex-wrap:wrap; }
+  .grid-opt { font-family:'Share Tech Mono',monospace; font-size:11px; padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-surface); color:var(--text-muted); cursor:pointer; transition:all 0.2s; }
+  .grid-opt:hover { background:var(--bg-hover); color:var(--text-primary); }
+  .grid-opt.active { color:var(--text-primary); background:var(--bg-hover); }
+  .grid-opt[data-game="digimon"].active   { border-color:var(--digi-border); color:var(--digi-bright); }
+  .grid-opt[data-game="gundam"].active    { border-color:var(--gun-border);  color:var(--gun-bright); }
+  .grid-opt[data-game="riftbound"].active { border-color:var(--rift-border); color:var(--rift-bright); }
+
+  /* Order selector */
+  .order-options { display:flex; gap:8px; }
+  .order-opt { font-size:12px; padding:6px 14px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-surface); color:var(--text-muted); cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .order-opt:hover { background:var(--bg-hover); }
+  .order-opt.active { background:var(--bg-hover); color:var(--text-primary); border-color:rgba(255,255,255,0.2); }
+  .order-diagram { display:grid; grid-template-columns:1fr 1fr; gap:2px; width:40px; height:28px; }
+  .order-cell { background:var(--bg-hover); border-radius:2px; display:flex; align-items:center; justify-content:center; font-size:8px; color:var(--text-muted); }
+  .order-opt.active .order-cell { background:rgba(255,255,255,0.08); }
+
   @media(max-width:600px){
     header,.game-nav,main{padding-left:16px;padding-right:16px}
     .game-nav{padding:0 8px} .nav-tab{padding:14px 14px;font-size:12px}
@@ -261,8 +315,119 @@
       <span id="status-text">Connecting…</span>
     </div>
     <button class="btn-action" onclick="reloadAll()">↺ Refresh</button>
+    <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
   </div>
 </header>
+
+<!-- SETTINGS OVERLAY -->
+<div class="settings-overlay" id="settings-overlay" onclick="closeSettingsOnBg(event)">
+  <div class="settings-panel" id="settings-panel">
+    <div class="settings-header">
+      <span class="settings-title">Settings</span>
+      <button class="settings-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="settings-body">
+
+      <!-- APPEARANCE -->
+      <div class="settings-section">
+        <div class="settings-section-title">🎨 Appearance</div>
+
+        <div class="setting-row">
+          <div><div class="setting-label">Light Mode</div><div class="setting-sub">Switch to light background</div></div>
+          <label class="toggle"><input type="checkbox" id="set-light-mode" onchange="applyLightMode(this.checked)"><span class="toggle-track"></span></label>
+        </div>
+
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+          <div class="setting-label">Digimon Accent</div>
+          <div class="color-swatches" id="swatches-digimon">
+            <div class="swatch active" data-game="digimon" data-color="#3b82f6" style="background:#3b82f6" onclick="setAccent('digimon','#3b82f6',this)" title="Blue"></div>
+            <div class="swatch" data-game="digimon" data-color="#f97316" style="background:#f97316" onclick="setAccent('digimon','#f97316',this)" title="Orange"></div>
+            <div class="swatch" data-game="digimon" data-color="#ef4444" style="background:#ef4444" onclick="setAccent('digimon','#ef4444',this)" title="Red"></div>
+            <div class="swatch" data-game="digimon" data-color="#22c55e" style="background:#22c55e" onclick="setAccent('digimon','#22c55e',this)" title="Green"></div>
+            <div class="swatch" data-game="digimon" data-color="#eab308" style="background:#eab308" onclick="setAccent('digimon','#eab308',this)" title="Yellow"></div>
+            <div class="swatch" data-game="digimon" data-color="#a855f7" style="background:#a855f7" onclick="setAccent('digimon','#a855f7',this)" title="Purple"></div>
+            <div class="swatch-custom" title="Custom"><input type="color" value="#3b82f6" oninput="setAccentCustom('digimon',this.value)"></div>
+          </div>
+        </div>
+
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+          <div class="setting-label">Gundam Accent</div>
+          <div class="color-swatches" id="swatches-gundam">
+            <div class="swatch" data-game="gundam" data-color="#3b82f6" style="background:#3b82f6" onclick="setAccent('gundam','#3b82f6',this)" title="Blue"></div>
+            <div class="swatch active" data-game="gundam" data-color="#06b6d4" style="background:#06b6d4" onclick="setAccent('gundam','#06b6d4',this)" title="Cyan"></div>
+            <div class="swatch" data-game="gundam" data-color="#ef4444" style="background:#ef4444" onclick="setAccent('gundam','#ef4444',this)" title="Red"></div>
+            <div class="swatch" data-game="gundam" data-color="#22c55e" style="background:#22c55e" onclick="setAccent('gundam','#22c55e',this)" title="Green"></div>
+            <div class="swatch" data-game="gundam" data-color="#eab308" style="background:#eab308" onclick="setAccent('gundam','#eab308',this)" title="Yellow"></div>
+            <div class="swatch" data-game="gundam" data-color="#f97316" style="background:#f97316" onclick="setAccent('gundam','#f97316',this)" title="Orange"></div>
+            <div class="swatch-custom" title="Custom"><input type="color" value="#06b6d4" oninput="setAccentCustom('gundam',this.value)"></div>
+          </div>
+        </div>
+
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+          <div class="setting-label">Riftbound Accent</div>
+          <div class="color-swatches" id="swatches-riftbound">
+            <div class="swatch" data-game="riftbound" data-color="#3b82f6" style="background:#3b82f6" onclick="setAccent('riftbound','#3b82f6',this)" title="Blue"></div>
+            <div class="swatch" data-game="riftbound" data-color="#06b6d4" style="background:#06b6d4" onclick="setAccent('riftbound','#06b6d4',this)" title="Cyan"></div>
+            <div class="swatch" data-game="riftbound" data-color="#ef4444" style="background:#ef4444" onclick="setAccent('riftbound','#ef4444',this)" title="Red"></div>
+            <div class="swatch" data-game="riftbound" data-color="#22c55e" style="background:#22c55e" onclick="setAccent('riftbound','#22c55e',this)" title="Green"></div>
+            <div class="swatch active" data-game="riftbound" data-color="#a855f7" style="background:#a855f7" onclick="setAccent('riftbound','#a855f7',this)" title="Purple"></div>
+            <div class="swatch" data-game="riftbound" data-color="#f97316" style="background:#f97316" onclick="setAccent('riftbound','#f97316',this)" title="Orange"></div>
+            <div class="swatch-custom" title="Custom"><input type="color" value="#a855f7" oninput="setAccentCustom('riftbound',this.value)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLLECTION MODE -->
+      <div class="settings-section">
+        <div class="settings-section-title">📦 Collection Mode</div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Quantity Mode</div>
+            <div class="setting-sub">Track number of copies instead of owned/missing</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="set-quantity-mode" onchange="applyQuantityMode(this.checked)"><span class="toggle-track"></span></label>
+        </div>
+      </div>
+
+      <!-- BINDER -->
+      <div class="settings-section">
+        <div class="settings-section-title">📖 Binder</div>
+
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+          <div class="setting-label">Grid Size</div>
+          <div class="grid-options">
+            <button class="grid-opt" data-grid="2x2" onclick="setBinderGrid('2x2',this)">2 × 2</button>
+            <button class="grid-opt active" data-grid="2x2r" onclick="setBinderGrid('2x2r',this)">2 × 2 (current)</button>
+            <button class="grid-opt" data-grid="3x3" onclick="setBinderGrid('3x3',this)">3 × 3</button>
+            <button class="grid-opt" data-grid="3x4" onclick="setBinderGrid('3x4',this)">3 × 4</button>
+            <button class="grid-opt" data-grid="4x4" onclick="setBinderGrid('4x4',this)">4 × 4</button>
+          </div>
+        </div>
+
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+          <div class="setting-label">Card Order Within Page</div>
+          <div class="order-options">
+            <button class="order-opt" onclick="setBinderOrder('lr',this)">
+              <div class="order-diagram">
+                <div class="order-cell">1</div><div class="order-cell">2</div>
+                <div class="order-cell">3</div><div class="order-cell">4</div>
+              </div>
+              <span style="font-size:10px">Left → Right</span>
+            </button>
+            <button class="order-opt active" onclick="setBinderOrder('rl',this)">
+              <div class="order-diagram">
+                <div class="order-cell">2</div><div class="order-cell">1</div>
+                <div class="order-cell">4</div><div class="order-cell">3</div>
+              </div>
+              <span style="font-size:10px">Right → Left</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <!-- Game nav -->
 <nav class="game-nav" id="game-nav">
@@ -683,12 +848,18 @@ function initProxyObserver() {
 }
 
 // ── OWNERSHIP TOGGLE ──────────────────────────────────────────
-async function toggleOwned(game, rowIndex, newOwned) {
+async function toggleOwned(game, rowIndex, newOwned, qty) {
   const card = state[game].cards.find(c => c.rowIndex === rowIndex);
   if (!card) return;
 
-  // Optimistic update
-  card.owned = newOwned;
+  // In quantity mode, newOwned is the quantity number
+  if (SETTINGS.quantityMode && qty !== undefined) {
+    card.owned = qty > 0;
+    card.qty   = qty;
+  } else {
+    card.owned = newOwned;
+    card.qty   = newOwned ? 1 : 0;
+  }
   updateCardEl(game, rowIndex, newOwned);
   renderStats(game);
   updateNavBadge(game);
@@ -1006,7 +1177,8 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 // ── BINDER ───────────────────────────────────────────────────
-const B_PER_PAGE = 4, P_PER_PAGE = 9;
+const P_PER_PAGE = 9;
+const B_PER_PAGE = 4; // default, overridden by SETTINGS at runtime
 
 function bPopulateSets(game) {
   const sel = document.getElementById('b-set-' + game);
@@ -1055,7 +1227,7 @@ function bOnSetChange(game) {
   bs.spread   = 0;
   const total   = all.length;
   const missing = all.filter(c => !c.owned).length;
-  const tp = Math.ceil(total / B_PER_PAGE);
+  const tp = Math.ceil(total / bCardsPerPage());
   document.getElementById('b-info-' + game).textContent =
     missing + ' missing / ' + total + ' total · ' + tp + ' page' + (tp !== 1 ? 's' : '');
   document.getElementById('b-print-' + game).disabled = missing === 0;
@@ -1078,15 +1250,17 @@ function bRender(game) {
   bs.view === 'binder' ? bRenderBinder(game) : bRenderPrint(game);
 }
 
-function bTotalPages(game)   { return Math.ceil(binderState[game].cards.length / B_PER_PAGE); }
+function bCardsPerPage() { return (SETTINGS.binderCols||2) * (SETTINGS.binderRows||2); }
+function bTotalPages(game)   { return Math.ceil(binderState[game].cards.length / bCardsPerPage()); }
 function bTotalSpreads(game) { return Math.ceil((bTotalPages(game) + 1) / 2); }
 
 function bGetPageCards(game, pageIdx) {
   if (pageIdx <= 0) return null;
-  const start = (pageIdx - 1) * B_PER_PAGE;
+  const cpp   = bCardsPerPage();
+  const start = (pageIdx - 1) * cpp;
   const cards = binderState[game].cards;
   if (start >= cards.length) return null;
-  return cards.slice(start, start + B_PER_PAGE);
+  return cards.slice(start, start + cpp);
 }
 
 function bCardSlotHTML(c) {
@@ -1109,9 +1283,18 @@ function bPageHTML(game, pageIdx) {
   if (pageIdx === 0) return `<div class="b-card cover"><div style="text-align:center;color:#aaa;font-family:monospace;font-size:11px"><div style="font-size:22px;margin-bottom:6px">📖</div>Cover</div></div><div class="b-card empty"></div><div class="b-card empty"></div><div class="b-card empty"></div>`;
   const cards = bGetPageCards(game, pageIdx);
   if (!cards) return '<div class="b-card empty"></div>'.repeat(4);
-  // Order: right-col first then left-col, so within each 2×2 page:
-  // slot index: 1(top-right), 0(top-left), 3(bottom-right), 2(bottom-left)
-  const order = [1, 0, 3, 2];
+  const cols  = SETTINGS.binderCols || 2;
+  const rows  = SETTINGS.binderRows || 2;
+  const total = cols * rows;
+  const rl    = SETTINGS.binderOrder !== 'lr'; // right-to-left within each row
+
+  // Build slot order based on cols, rows, and direction
+  const order = [];
+  for (let r = 0; r < rows; r++) {
+    const rowSlots = Array.from({length: cols}, (_, c) => r * cols + c);
+    if (rl) rowSlots.reverse();
+    order.push(...rowSlots);
+  }
   return order.map(i => bCardSlotHTML(cards[i] || null)).join('');
 }
 
@@ -1136,9 +1319,9 @@ function bRenderBinder(game) {
     </div>
     <div class="binder-spread-wrap">
       <div class="binder-spread">
-        <div class="binder-page">${bPageHTML(game, li)}</div>
+        <div class="binder-page" style="grid-template-columns:repeat(${SETTINGS.binderCols||2},1fr);grid-template-rows:repeat(${SETTINGS.binderRows||2},1fr)">${bPageHTML(game, li)}</div>
         <div class="binder-spine"></div>
-        <div class="binder-page">${bPageHTML(game, ri)}</div>
+        <div class="binder-page" style="grid-template-columns:repeat(${SETTINGS.binderCols||2},1fr);grid-template-rows:repeat(${SETTINGS.binderRows||2},1fr)">${bPageHTML(game, ri)}</div>
       </div>
     </div>
     <div style="text-align:center;margin-top:10px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted)">Switch to Print Preview to verify A4 sheets before printing</div>`;
@@ -1312,6 +1495,204 @@ function bRenderPrint(game) {
   });
   document.getElementById('binder-main-' + game).innerHTML = html;
 
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────
+
+// Persisted settings object
+const SETTINGS = {
+  lightMode:    false,
+  quantityMode: false,
+  accents: {
+    digimon:   { accent:'#3b82f6', glow:'rgba(59,130,246,0.15)',  border:'rgba(59,130,246,0.3)',  bright:'#60a5fa' },
+    gundam:    { accent:'#06b6d4', glow:'rgba(6,182,212,0.15)',   border:'rgba(6,182,212,0.3)',   bright:'#22d3ee' },
+    riftbound: { accent:'#a855f7', glow:'rgba(168,85,247,0.15)',  border:'rgba(168,85,247,0.3)',  bright:'#c084fc' },
+  },
+  binderGrid:  '2x2r',  // 2x2, 2x2r (right-first), 3x3, 3x4, 4x4
+  binderOrder: 'rl',    // 'lr' or 'rl'
+};
+
+function openSettings()  { document.getElementById('settings-overlay').classList.add('open'); }
+function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
+function closeSettingsOnBg(e) { if (e.target === document.getElementById('settings-overlay')) closeSettings(); }
+
+// ── ACCENT COLORS ─────────────────────────────────────────────
+function setAccent(game, color, el) {
+  // Mark swatch active
+  document.querySelectorAll(`#swatches-${game} .swatch`).forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  applyAccent(game, color);
+}
+
+function setAccentCustom(game, color) {
+  document.querySelectorAll(`#swatches-${game} .swatch`).forEach(s => s.classList.remove('active'));
+  applyAccent(game, color);
+}
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return r+','+g+','+b;
+}
+
+function applyAccent(game, color) {
+  const rgb   = hexToRgb(color);
+  // Bright = lighten by mixing with white ~20%
+  const r = Math.min(255, parseInt(color.slice(1,3),16) + 40).toString(16).padStart(2,'0');
+  const g = Math.min(255, parseInt(color.slice(3,5),16) + 40).toString(16).padStart(2,'0');
+  const b = Math.min(255, parseInt(color.slice(5,7),16) + 40).toString(16).padStart(2,'0');
+  const bright = '#' + r + g + b;
+
+  SETTINGS.accents[game] = {
+    accent: color,
+    glow:   `rgba(${rgb},0.15)`,
+    border: `rgba(${rgb},0.3)`,
+    bright: bright,
+  };
+
+  const root = document.documentElement;
+  const k = game === 'digimon' ? 'digi' : game === 'gundam' ? 'gun' : 'rift';
+  root.style.setProperty(`--${k}-accent`, color);
+  root.style.setProperty(`--${k}-glow`,   `rgba(${rgb},0.15)`);
+  root.style.setProperty(`--${k}-border`, `rgba(${rgb},0.3)`);
+  root.style.setProperty(`--${k}-bright`, bright);
+
+  // Re-render stats + nav badges to pick up new color
+  GAMES.forEach(g => { if (state[g].loaded) { renderStats(g); updateNavBadge(g); } });
+  saveSettings();
+}
+
+// ── LIGHT MODE ────────────────────────────────────────────────
+function applyLightMode(on) {
+  SETTINGS.lightMode = on;
+  const root = document.documentElement;
+  if (on) {
+    root.style.setProperty('--bg-base',    '#f0f0f5');
+    root.style.setProperty('--bg-card',    '#ffffff');
+    root.style.setProperty('--bg-surface', '#e8e8f0');
+    root.style.setProperty('--bg-hover',   '#dcdce8');
+    root.style.setProperty('--border',     'rgba(0,0,0,0.1)');
+    root.style.setProperty('--text-primary','#111118');
+    root.style.setProperty('--text-muted', '#5a5a70');
+    root.style.setProperty('--text-dim',   '#9090a0');
+    document.body.style.background = '#f0f0f5';
+  } else {
+    root.style.setProperty('--bg-base',    '#0a0a0f');
+    root.style.setProperty('--bg-card',    '#111118');
+    root.style.setProperty('--bg-surface', '#16161f');
+    root.style.setProperty('--bg-hover',   '#1e1e2a');
+    root.style.setProperty('--border',     'rgba(255,255,255,0.06)');
+    root.style.setProperty('--text-primary','#e8e8f0');
+    root.style.setProperty('--text-muted', '#6b6b80');
+    root.style.setProperty('--text-dim',   '#3a3a4a');
+    document.body.style.background = '#0a0a0f';
+  }
+  saveSettings();
+}
+
+// ── QUANTITY MODE ─────────────────────────────────────────────
+function applyQuantityMode(on) {
+  SETTINGS.quantityMode = on;
+  // Re-render all loaded games
+  GAMES.forEach(g => {
+    if (!state[g].loaded) return;
+    buildToolbar(g);
+    renderStats(g);
+    renderCards(g);
+  });
+  saveSettings();
+}
+
+// ── BINDER SETTINGS ───────────────────────────────────────────
+function setBinderGrid(grid, el) {
+  SETTINGS.binderGrid = grid;
+  document.querySelectorAll('.grid-opt').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+
+  // Parse cols/rows from grid code
+  const map = { '2x2':2, '2x2r':2, '3x3':3, '3x4':3, '4x4':4 };
+  const rowMap = { '2x2':2, '2x2r':2, '3x3':3, '3x4':4, '4x4':4 };
+  SETTINGS.binderCols = map[grid]   || 2;
+  SETTINGS.binderRows = rowMap[grid]|| 2;
+
+  // Re-render active binder
+  GAMES.forEach(g => {
+    const bs = document.getElementById('binder-' + g);
+    if (bs && bs.classList.contains('active') && binderState[g].cards.length) bRenderBinder(g);
+  });
+  saveSettings();
+}
+
+function setBinderOrder(order, el) {
+  SETTINGS.binderOrder = order;
+  document.querySelectorAll('.order-opt').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  GAMES.forEach(g => {
+    const bs = document.getElementById('binder-' + g);
+    if (bs && bs.classList.contains('active') && binderState[g].cards.length) bRenderBinder(g);
+  });
+  saveSettings();
+}
+
+// ── SAVE / LOAD — stored in Google Sheet Settings tab ────────
+let _saveTimer = null;
+
+function saveSettings() {
+  // Debounce — wait 1s after last change before saving to avoid hammering the API
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async () => {
+    try {
+      const data = encodeURIComponent(JSON.stringify(SETTINGS));
+      await fetch(API_URL + '?action=saveSettings&data=' + data);
+    } catch(e) { console.warn('Settings save failed:', e); }
+  }, 1000);
+}
+
+async function loadSettings() {
+  try {
+    const res  = await fetch(API_URL + '?action=getSettings');
+    const json = await res.json();
+    if (!json.ok || !json.settings) return;
+    const saved = json.settings;
+
+    if (saved.lightMode) {
+      SETTINGS.lightMode = true;
+      document.getElementById('set-light-mode').checked = true;
+      applyLightMode(true);
+    }
+    if (saved.quantityMode) {
+      SETTINGS.quantityMode = true;
+      document.getElementById('set-quantity-mode').checked = true;
+    }
+    if (saved.binderGrid) {
+      SETTINGS.binderGrid = saved.binderGrid;
+      SETTINGS.binderCols = saved.binderCols || 2;
+      SETTINGS.binderRows = saved.binderRows || 2;
+      // Mark correct grid button active
+      document.querySelectorAll('.grid-opt').forEach(b => {
+        b.classList.toggle('active', b.dataset.grid === saved.binderGrid);
+      });
+    }
+    if (saved.binderOrder) {
+      SETTINGS.binderOrder = saved.binderOrder;
+      document.querySelectorAll('.order-opt').forEach((b, i) => {
+        const ord = i === 0 ? 'lr' : 'rl';
+        b.classList.toggle('active', ord === saved.binderOrder);
+      });
+    }
+    if (saved.accents) {
+      Object.entries(saved.accents).forEach(([game, a]) => {
+        if (a?.accent) {
+          applyAccent(game, a.accent);
+          // Mark correct swatch active
+          document.querySelectorAll(`#swatches-${game} .swatch`).forEach(s => {
+            s.classList.toggle('active', s.dataset.color === a.accent);
+          });
+        }
+      });
+    }
+  } catch(e) {
+    console.warn('Settings load failed:', e);
+  }
 }
 
 // ── TOAST ─────────────────────────────────────────────────────
