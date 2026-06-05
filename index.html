@@ -1637,13 +1637,27 @@ function setBinderOrder(order, el) {
 let _saveTimer = null;
 
 function saveSettings() {
-  // Debounce — wait 1s after last change before saving to avoid hammering the API
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(async () => {
     try {
-      const data = encodeURIComponent(JSON.stringify(SETTINGS));
-      await fetch(API_URL + '?action=saveSettings&data=' + data);
-    } catch(e) { console.warn('Settings save failed:', e); }
+      const json = JSON.stringify(SETTINGS);
+      // POST the data to avoid URL length limits on GET requests
+      const res  = await fetch(API_URL + '?action=saveSettings', {
+        method:  'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body:    json,
+      });
+      const result = await res.json();
+      if (result.error) {
+        console.warn('Settings save error:', result.error);
+        toast('⚠ Settings not saved: ' + result.error, 'err');
+      } else {
+        toast('✓ Settings saved', 'ok');
+      }
+    } catch(e) {
+      console.warn('Settings save failed:', e);
+      toast('⚠ Settings save failed', 'err');
+    }
   }, 1000);
 }
 
