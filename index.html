@@ -237,6 +237,13 @@
   .cl-card-pos { position:absolute; top:3px; left:3px; background:rgba(0,0,0,0.6); color:#fff; font-family:'Share Tech Mono',monospace; font-size:9px; padding:1px 4px; border-radius:2px; }
   .cl-remove { position:absolute; top:3px; right:3px; background:rgba(0,0,0,0.6); color:#f87171; border:none; width:16px; height:16px; border-radius:50%; font-size:9px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; }
   .cl-card:hover .cl-remove { opacity:1; }
+  .cl-card[draggable] { cursor:grab; }
+  .cl-card[draggable]:active { cursor:grabbing; }
+  .cl-card.drag-over { outline:2px solid var(--digi-accent); outline-offset:2px; }
+  .cl-card.dragging { opacity:0.3; }
+  .cl-drag-handle { position:absolute; bottom:3px; left:3px; color:var(--text-dim); font-size:10px; cursor:grab; opacity:0; transition:opacity 0.2s; }
+  .cl-card:hover .cl-drag-handle { opacity:1; }
+  .cl-card:hover .cl-remove { opacity:1; }
 
   /* Manual card picker list */
   .picker-row { display:flex; align-items:center; gap:8px; padding:6px 10px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; }
@@ -550,7 +557,7 @@
           <div class="grid-options" id="new-binder-grid">
             <button class="grid-opt active" data-grid="2x2" onclick="selectNewGrid('2x2',this)">2 × 2</button>
             <button class="grid-opt" data-grid="3x3" onclick="selectNewGrid('3x3',this)">3 × 3</button>
-            <button class="grid-opt" data-grid="3x4" onclick="selectNewGrid('3x4',this)">3 × 4</button>
+            <button class="grid-opt" data-grid="3x4" onclick="selectNewGrid('3x4',this)">4 × 3</button>
             <button class="grid-opt" data-grid="4x4" onclick="selectNewGrid('4x4',this)">4 × 4</button>
           </div>
         </div>
@@ -1284,10 +1291,10 @@ let newBinderFrom = 'set';
 let manualSelected = new Set();
 
 const GRID_MAP = {
-  '2x2': { cols:2, rows:2 },
-  '3x3': { cols:3, rows:3 },
-  '3x4': { cols:3, rows:4 },
-  '4x4': { cols:4, rows:4 },
+  '2x2': { cols:2, rows:2 },  // 4 cards per page
+  '3x3': { cols:3, rows:3 },  // 9 cards per page
+  '3x4': { cols:4, rows:3 },  // 12 cards per page — 4 cols × 3 rows (wide)
+  '4x4': { cols:4, rows:4 },  // 16 cards per page
 };
 
 // ── RENDER BINDER PAGE ────────────────────────────────────────
@@ -1444,14 +1451,24 @@ function cardListItem(c, i, binderId, game) {
       ? `<img data-proxy="${x(c.imageUrl)}" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block">`
       : `<img src="${x(c.imageUrl)}" loading="lazy" onerror="this.style.display='none'">`
     : `<div style="width:100%;aspect-ratio:3/4;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-dim)">${x(c.number)}</div>`;
-  return `<div class="cl-card ${c.owned?'':'unowned'}">
+  return `<div class="cl-card ${c.owned?'':'unowned'}"
+    draggable="true"
+    data-number="${x(c.number)}"
+    data-binder="${binderId}"
+    data-game="${game}"
+    ondragstart="clDragStart(event)"
+    ondragover="clDragOver(event)"
+    ondragleave="clDragLeave(event)"
+    ondrop="clDrop(event)"
+    ondragend="clDragEnd(event)">
     <div class="cl-card-pos">${i+1}</div>
+    <div class="cl-drag-handle" title="Drag to reorder">⠿</div>
     ${imgHTML}
     <div class="cl-card-info">
       <div class="cl-card-num">${x(c.number)}</div>
       <div class="cl-card-name">${x(c.name)}</div>
     </div>
-    <button class="cl-remove" onclick="removeCardFromBinder('${game}','${binderId}','${x(c.number)}')" title="Remove">✕</button>
+    <button class="cl-remove" onclick="event.stopPropagation();removeCardFromBinder('${game}','${binderId}','${x(c.number)}')" title="Remove">✕</button>
   </div>`;
 }
 
@@ -1622,6 +1639,55 @@ function openAddCardsModal(game, id) {
   document.getElementById('new-binder-name').disabled = true;
   document.getElementById('add-binder-modal')._targetId = id;
   openAddBinder(game);
+}
+
+// ── DRAG AND DROP REORDER ────────────────────────────────────
+let _dragSrcNumber = null;
+
+function clDragStart(e) {
+  _dragSrcNumber = e.currentTarget.dataset.number;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function clDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+
+function clDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function clDrop(e) {
+  e.preventDefault();
+  const el       = e.currentTarget;
+  el.classList.remove('drag-over');
+  const targetNum = el.dataset.number;
+  const game      = el.dataset.game;
+  const binderId  = el.dataset.binder;
+  if (!_dragSrcNumber || _dragSrcNumber === targetNum) return;
+
+  const b = binders[game].find(b => b.id === binderId);
+  if (!b) return;
+
+  const srcIdx = b.cardNumbers.indexOf(_dragSrcNumber);
+  const tgtIdx = b.cardNumbers.indexOf(targetNum);
+  if (srcIdx === -1 || tgtIdx === -1) return;
+
+  // Move src to target position
+  b.cardNumbers.splice(srcIdx, 1);
+  b.cardNumbers.splice(tgtIdx, 0, _dragSrcNumber);
+
+  saveBindersToSheet(game);
+  renderBinderPage(game);
+}
+
+function clDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.cl-card').forEach(el => el.classList.remove('drag-over'));
+  _dragSrcNumber = null;
 }
 
 // ── PERSIST BINDERS TO SHEET ──────────────────────────────────
