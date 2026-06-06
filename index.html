@@ -529,98 +529,43 @@
     <div id="cards-riftbound"><div class="loading-state"><div class="spinner"></div>Loading…</div></div>
   </section>
 
-  <!-- BINDER VIEWS — per game, named binders -->
+  <!-- BINDER VIEWS -->
   <section class="binder-section" id="binder-digimon"   data-game="digimon">
-    <div id="binder-content-digimon"></div>
+    <div class="binder-controls">
+      <select class="binder-select" id="b-set-digimon"   onchange="bOnSetChange('digimon')"   ><option value="">All sets…</option></select>
+      <div class="binder-view-toggle">
+        <button class="bvbtn active" id="bvbtn-binder-digimon"   onclick="bSetView('digimon','binder')" >📖 Binder</button>
+        <button class="bvbtn"        id="bvbtn-print-digimon"    onclick="bSetView('digimon','print')"  >☰ Print Preview</button>
+      </div>
+      <button class="btn-action" id="b-print-digimon" onclick="bPrint('digimon')" disabled>⬇ Download PDF</button>
+      <span class="binder-info" id="b-info-digimon"></span>
+    </div>
+    <div class="binder-main" id="binder-main-digimon"><div class="empty-state">Select a set to preview</div></div>
   </section>
   <section class="binder-section" id="binder-gundam"    data-game="gundam">
-    <div id="binder-content-gundam"></div>
+    <div class="binder-controls">
+      <select class="binder-select" id="b-set-gundam"    onchange="bOnSetChange('gundam')"    ><option value="">All sets…</option></select>
+      <div class="binder-view-toggle">
+        <button class="bvbtn active" id="bvbtn-binder-gundam"    onclick="bSetView('gundam','binder')"  >📖 Binder</button>
+        <button class="bvbtn"        id="bvbtn-print-gundam"     onclick="bSetView('gundam','print')"   >☰ Print Preview</button>
+      </div>
+      <button class="btn-action" id="b-print-gundam" onclick="bPrint('gundam')" disabled>⬇ Download PDF</button>
+      <span class="binder-info" id="b-info-gundam"></span>
+    </div>
+    <div class="binder-main" id="binder-main-gundam"><div class="empty-state">Select a set to preview</div></div>
   </section>
   <section class="binder-section" id="binder-riftbound" data-game="riftbound">
-    <div id="binder-content-riftbound"></div>
-  </section>
-
-  <!-- ADD BINDER MODAL -->
-  <div class="modal-overlay" id="add-binder-modal" onclick="closeAddBinderOnBg(event)">
-    <div class="modal-panel">
-      <div class="modal-header">
-        <span class="modal-title">New Binder</span>
-        <button class="settings-close" onclick="closeAddBinder()">✕</button>
+    <div class="binder-controls">
+      <select class="binder-select" id="b-set-riftbound" onchange="bOnSetChange('riftbound')" ><option value="">All sets…</option></select>
+      <div class="binder-view-toggle">
+        <button class="bvbtn active" id="bvbtn-binder-riftbound" onclick="bSetView('riftbound','binder')">📖 Binder</button>
+        <button class="bvbtn"        id="bvbtn-print-riftbound"  onclick="bSetView('riftbound','print')" >☰ Print Preview</button>
       </div>
-      <div class="modal-body">
-        <div class="modal-field">
-          <label class="modal-label">Binder Name</label>
-          <input class="modal-input" id="new-binder-name" type="text" placeholder="e.g. BT1 Main Collection" maxlength="40">
-        </div>
-        <div class="modal-field">
-          <label class="modal-label">Layout</label>
-          <div class="grid-options" id="new-binder-grid">
-            <button class="grid-opt active" data-grid="2x2" onclick="selectNewGrid('2x2',this)">2 × 2</button>
-            <button class="grid-opt" data-grid="3x3" onclick="selectNewGrid('3x3',this)">3 × 3</button>
-            <button class="grid-opt" data-grid="3x4" onclick="selectNewGrid('3x4',this)">4 × 3</button>
-            <button class="grid-opt" data-grid="4x4" onclick="selectNewGrid('4x4',this)">4 × 4</button>
-          </div>
-        </div>
-        <div class="modal-field">
-          <label class="modal-label">Card Order Within Page</label>
-          <div class="order-options">
-            <button class="order-opt" id="new-order-lr" onclick="selectNewOrder('lr')">
-              <div class="order-diagram"><div class="order-cell">1</div><div class="order-cell">2</div><div class="order-cell">3</div><div class="order-cell">4</div></div>
-              <span style="font-size:10px">Left → Right</span>
-            </button>
-            <button class="order-opt active" id="new-order-rl" onclick="selectNewOrder('rl')">
-              <div class="order-diagram"><div class="order-cell">2</div><div class="order-cell">1</div><div class="order-cell">4</div><div class="order-cell">3</div></div>
-              <span style="font-size:10px">Right → Left</span>
-            </button>
-          </div>
-        </div>
-        <div class="modal-field">
-          <label class="modal-label">Add Cards From</label>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="bvbtn active" id="add-from-set" onclick="selectAddFrom('set',this)">By Set</button>
-            <button class="bvbtn" id="add-from-filter" onclick="selectAddFrom('filter',this)">By Filter</button>
-            <button class="bvbtn" id="add-from-manual" onclick="selectAddFrom('manual',this)">Manual Pick</button>
-          </div>
-        </div>
-
-        <!-- By Set -->
-        <div id="add-from-set-opts" class="modal-field">
-          <label class="modal-label">Set</label>
-          <select class="binder-select" id="new-binder-set" style="width:100%"><option value="">Loading…</option></select>
-          <div style="margin-top:8px;display:flex;gap:8px">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer">
-              <input type="checkbox" id="set-missing-only" checked> Missing cards only
-            </label>
-          </div>
-        </div>
-
-        <!-- By Filter -->
-        <div id="add-from-filter-opts" class="modal-field" style="display:none">
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <select class="binder-select" id="filter-set-new" style="min-width:140px"><option value="">All Sets</option></select>
-            <select class="binder-select" id="filter-rarity-new" style="min-width:120px"><option value="">All Rarities</option></select>
-            <select class="binder-select" id="filter-owned-new">
-              <option value="missing">Missing only</option>
-              <option value="owned">Owned only</option>
-              <option value="">All</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Manual Pick -->
-        <div id="add-from-manual-opts" class="modal-field" style="display:none">
-          <div class="search-wrap" style="width:100%">
-            <span class="search-icon">🔍</span>
-            <input class="search-input" id="manual-search" type="text" placeholder="Search cards…" oninput="filterManualList()" style="width:100%">
-          </div>
-          <div id="manual-card-list" style="max-height:220px;overflow-y:auto;margin-top:8px;border:1px solid var(--border);border-radius:var(--radius-sm)"></div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:4px"><span id="manual-count">0</span> cards selected</div>
-        </div>
-
-        <button class="btn-action primary" style="width:100%;justify-content:center;margin-top:8px" onclick="createBinder()">Create Binder</button>
-      </div>
+      <button class="btn-action" id="b-print-riftbound" onclick="bPrint('riftbound')" disabled>⬇ Download PDF</button>
+      <span class="binder-info" id="b-info-riftbound"></span>
     </div>
-  </div>
+    <div class="binder-main" id="binder-main-riftbound"><div class="empty-state">Select a set to preview</div></div>
+  </section>
 </main>
 
 <div id="toast"></div>
@@ -761,7 +706,7 @@ function applyView(game, view) {
     const bs = document.getElementById('binder-' + game);
     if (bs) {
       bs.classList.add('active');
-      renderBinderPage(game);
+      bPopulateSets(game);
     }
   }
 }
@@ -1280,154 +1225,172 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-// ── NAMED BINDER SYSTEM ──────────────────────────────────────
-// binders[game] = [ { id, name, grid, order, cardNumbers[] }, ... ]
-const binders = { digimon:[], gundam:[], riftbound:[] };
-let activeBinder = { digimon:null, gundam:null, riftbound:null };
-let newBinderGame = null;
-let newBinderGrid = '2x2';
-let newBinderOrder = 'rl';
-let newBinderFrom = 'set';
-let manualSelected = new Set();
-
-const GRID_MAP = {
-  '2x2': { cols:2, rows:2 },  // 4 cards per page
-  '3x3': { cols:3, rows:3 },  // 9 cards per page
-  '3x4': { cols:4, rows:3 },  // 12 cards per page — 4 cols × 3 rows (wide)
-  '4x4': { cols:4, rows:4 },  // 16 cards per page
+// ── BINDER ───────────────────────────────────────────────────
+const P_PER_PAGE = 9;
+const B_PER_PAGE = 4;
+const binderState = {
+  digimon:   { spread:0, view:'binder', cards:[] },
+  gundam:    { spread:0, view:'binder', cards:[] },
+  riftbound: { spread:0, view:'binder', cards:[] },
 };
 
-// ── RENDER BINDER PAGE ────────────────────────────────────────
-function renderBinderPage(game) {
-  const el = document.getElementById('binder-content-' + game);
-  if (!el) return;
-  const list = binders[game];
+function bCardsPerPage() {
+  const g = SETTINGS.binderGrid || '2x2';
+  const map = { '2x2':4, '3x3':9, '3x4':12, '4x4':16 };
+  return map[g] || 4;
+}
 
-  // Header row
-  let html = `<div class="binder-page-header">
-    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-muted)">
-      ${list.length} binder${list.length !== 1 ? 's' : ''}
-    </div>
-  </div>
-  <div class="binder-tabs-row">`;
-
-  list.forEach((b, i) => {
-    const active = activeBinder[game] === b.id ? ' active' : '';
-    html += `<div class="binder-tab${active}" onclick="openBinder('${game}','${b.id}')">
-      📖 ${x(b.name)}
-      <span class="binder-tab-del" onclick="event.stopPropagation();deleteBinder('${game}','${b.id}')" title="Delete">✕</span>
-    </div>`;
+function bPopulateSets(game) {
+  const sel = document.getElementById('b-set-' + game);
+  if (!sel) return;
+  const all = state[game]?.cards || [];
+  if (!all.length) {
+    document.getElementById('binder-main-' + game).innerHTML = '<div class="empty-state"><div class="spinner"></div>Loading…</div>';
+    return;
+  }
+  const currentCount = parseInt(sel.dataset.cardCount || '0');
+  if (sel.dataset.populated === 'true' && currentCount === all.length) return;
+  const seen = new Set(), sets = [];
+  for (const c of all) { if (c.setName && !seen.has(c.setName)) { seen.add(c.setName); sets.push(c.setName); } }
+  const prevVal = sel.value;
+  sel.innerHTML = '<option value="">All sets…</option>';
+  sortSets(game, sets).forEach(s => {
+    const sc = all.filter(c => c.setName === s);
+    const ms = sc.filter(c => !c.owned).length;
+    const o  = document.createElement('option');
+    o.value = s; o.textContent = s + ' (' + ms + ' missing / ' + sc.length + ' total)';
+    sel.appendChild(o);
   });
-  html += `<button class="add-binder-btn" onclick="openAddBinder('${game}')">+ New Binder</button></div>`;
-
-  // Active binder view
-  if (activeBinder[game]) {
-    const b = list.find(b => b.id === activeBinder[game]);
-    if (b) html += renderNamedBinder(game, b);
-  } else if (list.length === 0) {
-    html += `<div class="empty-state" style="margin-top:60px">
-      No binders yet — click <strong>+ New Binder</strong> to create one
-    </div>`;
-  }
-
-  el.innerHTML = html;
-
-  // Load proxy images
-  setTimeout(initProxyObserver, 80);
+  sel.dataset.populated = 'true';
+  sel.dataset.cardCount  = all.length;
+  if (prevVal && sets.includes(prevVal)) sel.value = prevVal;
+  else if (sets.length) sel.value = sets[0];
+  bOnSetChange(game);
 }
 
-function renderNamedBinder(game, b) {
-  const cards    = b.cardNumbers.map(n => state[game].cards.find(c => c.number === n)).filter(Boolean);
-  const missing  = cards.filter(c => !c.owned).length;
-  const g        = GRID_MAP[b.grid] || { cols:2, rows:2 };
-  const cpp      = g.cols * g.rows;
-  const pages    = Math.ceil(cards.length / cpp);
-  const spread   = b._spread || 0;
+function bOnSetChange(game) {
+  const set   = document.getElementById('b-set-' + game)?.value || '';
+  const all   = (state[game]?.cards || []).filter(c => !set || c.setName === set);
+  const bs    = binderState[game];
+  bs.cards    = all;
+  bs.spread   = 0;
+  const total   = all.length;
+  const missing = all.filter(c => !c.owned).length;
+  const tp = Math.ceil(total / bCardsPerPage());
+  document.getElementById('b-info-' + game).textContent =
+    missing + ' missing / ' + total + ' total · ' + tp + ' page' + (tp !== 1 ? 's' : '');
+  document.getElementById('b-print-' + game).disabled = missing === 0;
+  bRender(game);
+}
 
-  return `<div class="named-binder-view" id="nbv-${b.id}">
-    <div class="named-binder-toolbar">
-      <div class="binder-title-display">${x(b.name)}</div>
-      <div class="binder-meta">${cards.length} cards · ${missing} missing · ${pages} pages · ${b.grid} layout</div>
-      <div class="binder-view-toggle">
-        <button class="bvbtn ${b._view !== 'print' ? 'active' : ''}" onclick="setNamedView('${game}','${b.id}','binder')">📖 Binder</button>
-        <button class="bvbtn ${b._view === 'print' ? 'active' : ''}" onclick="setNamedView('${game}','${b.id}','print')">☰ Print</button>
-      </div>
-      <button class="btn-action" onclick="bPrintNamed('${game}','${b.id}')">⬇ PDF</button>
-    </div>
+function bSetView(game, v) {
+  binderState[game].view = v;
+  document.getElementById('bvbtn-binder-' + game).classList.toggle('active', v === 'binder');
+  document.getElementById('bvbtn-print-'  + game).classList.toggle('active', v === 'print');
+  bRender(game);
+}
 
-    ${b._view === 'print' ? renderNamedPrint(cards) : renderNamedSpread(game, b, cards, spread, g, pages)}
+function bRender(game) {
+  const bs = binderState[game];
+  if (!bs.cards.length) {
+    document.getElementById('binder-main-' + game).innerHTML = '<div class="empty-state">No cards found for this set.</div>';
+    return;
+  }
+  bs.view === 'binder' ? bRenderBinder(game) : bRenderPrint(game);
+}
 
-    <div class="card-list-section">
-      <div class="card-list-header">
-        <span>Card List (${cards.length})</span>
-        <button class="btn-action" style="padding:4px 10px;font-size:11px" onclick="openAddCardsModal('${game}','${b.id}')">+ Add Cards</button>
-      </div>
-      <div class="card-list-grid" id="cl-${b.id}">
-        ${cards.map((c, i) => cardListItem(c, i, b.id, game)).join('')}
-      </div>
-    </div>
+function bTotalPages(game)   { return Math.ceil(binderState[game].cards.length / bCardsPerPage()); }
+function bTotalSpreads(game) { return Math.ceil((bTotalPages(game) + 1) / 2); }
+
+function bGetPageCards(game, pageIdx) {
+  if (pageIdx <= 0) return null;
+  const cpp   = bCardsPerPage();
+  const start = (pageIdx - 1) * cpp;
+  const cards = binderState[game].cards;
+  if (start >= cards.length) return null;
+  return cards.slice(start, start + cpp);
+}
+
+function bCardSlotHTML(c) {
+  if (!c) return '<div class="b-card empty"></div>';
+  const cls = c.owned ? 'b-card' : 'b-card unowned';
+  const imgHTML = c.imageUrl
+    ? c.imageUrl.includes('gundam-gcg.com')
+      ? `<img data-proxy="${x(c.imageUrl)}" alt="${x(c.name)}" style="width:66%;border-radius:3px;aspect-ratio:3/4;object-fit:cover;display:block" onerror="this.style.display='none'">`
+      : `<img src="${x(c.imageUrl)}" loading="lazy" onerror="this.style.display='none'">`
+    : '';
+  return `<div class="${cls}">
+    <div class="b-set">${x(c.setName)}</div>
+    ${imgHTML}
+    <div class="b-info"><div class="b-name">${x(c.name)}</div><div class="b-meta">${x(c.number)} · ${x(c.rarity)}</div></div>
   </div>`;
 }
 
-function renderNamedSpread(game, b, cards, spread, g, pages) {
-  const ts      = Math.ceil((pages + 1) / 2);
-  const li      = spread === 0 ? 0 : spread * 2;
-  const ri      = spread === 0 ? 1 : spread * 2 + 1;
-  const cpp     = g.cols * g.rows;
-  const llabel  = li === 0 ? 'Cover' : 'Page ' + li;
-  const rlabel  = ri > pages ? '—' : 'Page ' + ri;
-  const fc      = Math.max(1, (li - 1) * cpp + 1);
-  const lc      = Math.min(ri * cpp, cards.length);
-
-  function getPage(pidx) {
-    if (pidx === 0) return null;
-    const s = (pidx - 1) * cpp;
-    if (s >= cards.length) return null;
-    return cards.slice(s, s + cpp);
+function bPageHTML(game, pageIdx) {
+  const g   = SETTINGS.binderGrid || '2x2';
+  const gm  = { '2x2':{cols:2,rows:2}, '3x3':{cols:3,rows:3}, '3x4':{cols:4,rows:3}, '4x4':{cols:4,rows:4} }[g] || {cols:2,rows:2};
+  const cpp = gm.cols * gm.rows;
+  if (pageIdx === 0) return `<div class="b-card cover"><div style="text-align:center;color:#aaa;font-family:monospace;font-size:11px"><div style="font-size:22px;margin-bottom:6px">📖</div>Cover</div></div>${'<div class="b-card empty"></div>'.repeat(cpp - 1)}`;
+  const cards = bGetPageCards(game, pageIdx);
+  if (!cards) return '<div class="b-card empty"></div>'.repeat(cpp);
+  const rl = SETTINGS.binderOrder !== 'lr';
+  const order = [];
+  for (let r = 0; r < gm.rows; r++) {
+    const row = Array.from({length: gm.cols}, (_, c) => r * gm.cols + c);
+    if (rl) row.reverse();
+    order.push(...row);
   }
-
-  function pageHTML(pidx) {
-    if (pidx === 0) return `<div class="b-card cover"><div style="text-align:center;color:#aaa;font-family:monospace;font-size:11px"><div style="font-size:22px;margin-bottom:6px">📖</div>Cover</div></div>${'<div class="b-card empty"></div>'.repeat(cpp - 1)}`;
-    const pc = getPage(pidx);
-    if (!pc) return '<div class="b-card empty"></div>'.repeat(cpp);
-    const rl = (b.order || SETTINGS.binderOrder) !== 'lr';
-    const order = [];
-    for (let r = 0; r < g.rows; r++) {
-      const row = Array.from({length: g.cols}, (_, c) => r * g.cols + c);
-      if (rl) row.reverse();
-      order.push(...row);
-    }
-    return order.map(i => {
-      const c = pc[i];
-      if (!c) return '<div class="b-card empty"></div>';
-      const cls = c.owned ? 'b-card' : 'b-card unowned';
-      const imgHTML = c.imageUrl
-        ? c.imageUrl.includes('gundam-gcg.com')
-          ? `<img data-proxy="${x(c.imageUrl)}" style="width:66%;border-radius:3px;aspect-ratio:3/4;object-fit:cover;display:block">`
-          : `<img src="${x(c.imageUrl)}" loading="lazy" onerror="this.style.display='none'">`
-        : '';
-      return `<div class="${cls}"><div class="b-set">${x(c.setName)}</div>${imgHTML}<div class="b-info"><div class="b-name">${x(c.name)}</div><div class="b-meta">${x(c.number)} · ${x(c.rarity)}</div></div></div>`;
-    }).join('');
-  }
-
-  return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-    <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-muted)">${llabel} & ${rlabel} · Cards ${fc}–${lc} of ${cards.length}</div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <button class="flip-btn" onclick="namedFlip('${game}','${b.id}',-1)" ${spread===0?'disabled':''}>&#8249;</button>
-      <span class="spread-label">${spread+1} / ${ts}</span>
-      <button class="flip-btn" onclick="namedFlip('${game}','${b.id}',1)" ${spread>=ts-1?'disabled':''}>&#8250;</button>
-    </div>
-  </div>
-  <div class="binder-spread-wrap">
-    <div class="binder-spread">
-      <div class="binder-page" style="grid-template-columns:repeat(${g.cols},1fr);grid-template-rows:repeat(${g.rows},1fr)">${pageHTML(li)}</div>
-      <div class="binder-spine"></div>
-      <div class="binder-page" style="grid-template-columns:repeat(${g.cols},1fr);grid-template-rows:repeat(${g.rows},1fr)">${pageHTML(ri)}</div>
-    </div>
-  </div>`;
+  return order.map(i => bCardSlotHTML(cards[i] || null)).join('');
 }
 
-function renderNamedPrint(cards) {
+function bRenderBinder(game) {
+  const bs  = binderState[game];
+  const ts  = bTotalSpreads(game);
+  const g   = SETTINGS.binderGrid || '2x2';
+  const gm  = { '2x2':{cols:2,rows:2}, '3x3':{cols:3,rows:3}, '3x4':{cols:4,rows:3}, '4x4':{cols:4,rows:4} }[g] || {cols:2,rows:2};
+  const li  = bs.spread === 0 ? 0 : bs.spread * 2;
+  const ri  = bs.spread === 0 ? 1 : bs.spread * 2 + 1;
+  const ll  = li === 0 ? 'Cover' : 'Page ' + li;
+  const rl2 = ri > bTotalPages(game) ? '—' : 'Page ' + ri;
+  const cpp = gm.cols * gm.rows;
+  const fc  = Math.max(1, (li - 1) * cpp + 1);
+  const lc  = Math.min(ri * cpp, bs.cards.length);
+
+  document.getElementById('binder-main-' + game).innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-muted)">${ll} & ${rl2} · Cards ${fc}–${lc} of ${bs.cards.length}</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="flip-btn" onclick="bFlip('${game}',-1)" ${bs.spread===0?'disabled':''}>&#8249;</button>
+        <span class="spread-label">${bs.spread+1} / ${ts}</span>
+        <button class="flip-btn" onclick="bFlip('${game}',1)" ${bs.spread>=ts-1?'disabled':''}>&#8250;</button>
+      </div>
+    </div>
+    <div class="binder-spread-wrap">
+      <div class="binder-spread">
+        <div class="binder-page" style="grid-template-columns:repeat(${gm.cols},1fr);grid-template-rows:repeat(${gm.rows},1fr)">${bPageHTML(game,li)}</div>
+        <div class="binder-spine"></div>
+        <div class="binder-page" style="grid-template-columns:repeat(${gm.cols},1fr);grid-template-rows:repeat(${gm.rows},1fr)">${bPageHTML(game,ri)}</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:10px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted)">Switch to Print Preview to verify A4 sheets before printing</div>`;
+  setTimeout(() => {
+    document.querySelectorAll('#binder-main-' + game + ' img[data-proxy]').forEach(img => {
+      const url = img.dataset.proxy;
+      if (url) { loadProxiedImage(img, url); delete img.dataset.proxy; }
+    });
+  }, 100);
+}
+
+function bFlip(game, dir) {
+  const bs   = binderState[game];
+  const next = bs.spread + dir;
+  if (next < 0 || next >= bTotalSpreads(game)) return;
+  bs.spread = next;
+  bRenderBinder(game);
+}
+
+function bRenderPrint(game) {
+  const cards = binderState[game].cards.filter(c => !c.owned);
   const pages = [];
   for (let i = 0; i < cards.length; i += P_PER_PAGE) pages.push(cards.slice(i, i + P_PER_PAGE));
   let html = '';
@@ -1442,362 +1405,74 @@ function renderNamedPrint(cards) {
     for (let i = pg.length; i < P_PER_PAGE; i++) html += '<div class="p-slot empty"></div>';
     html += '</div>';
   });
-  return html;
+  document.getElementById('binder-main-' + game).innerHTML = html;
 }
 
-function cardListItem(c, i, binderId, game) {
-  const imgHTML = c.imageUrl
-    ? c.imageUrl.includes('gundam-gcg.com')
-      ? `<img data-proxy="${x(c.imageUrl)}" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block">`
-      : `<img src="${x(c.imageUrl)}" loading="lazy" onerror="this.style.display='none'">`
-    : `<div style="width:100%;aspect-ratio:3/4;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-dim)">${x(c.number)}</div>`;
-  return `<div class="cl-card ${c.owned?'':'unowned'}"
-    draggable="true"
-    data-number="${x(c.number)}"
-    data-binder="${binderId}"
-    data-game="${game}"
-    ondragstart="clDragStart(event)"
-    ondragover="clDragOver(event)"
-    ondragleave="clDragLeave(event)"
-    ondrop="clDrop(event)"
-    ondragend="clDragEnd(event)">
-    <div class="cl-card-pos">${i+1}</div>
-    <div class="cl-drag-handle" title="Drag to reorder">⠿</div>
-    ${imgHTML}
-    <div class="cl-card-info">
-      <div class="cl-card-num">${x(c.number)}</div>
-      <div class="cl-card-name">${x(c.name)}</div>
-    </div>
-    <button class="cl-remove" onclick="event.stopPropagation();removeCardFromBinder('${game}','${binderId}','${x(c.number)}')" title="Remove">✕</button>
-  </div>`;
-}
 
-// ── BINDER ACTIONS ────────────────────────────────────────────
-function openBinder(game, id) {
-  activeBinder[game] = id;
-  renderBinderPage(game);
-}
-
-function namedFlip(game, id, dir) {
-  const b = binders[game].find(b => b.id === id);
-  if (!b) return;
-  const cards = b.cardNumbers.map(n => state[game].cards.find(c => c.number === n)).filter(Boolean);
-  const g     = GRID_MAP[b.grid] || { cols:2, rows:2 };
-  const pages = Math.ceil(cards.length / (g.cols * g.rows));
-  const ts    = Math.ceil((pages + 1) / 2);
-  b._spread   = Math.max(0, Math.min((b._spread || 0) + dir, ts - 1));
-  renderBinderPage(game);
-}
-
-function setNamedView(game, id, view) {
-  const b = binders[game].find(b => b.id === id);
-  if (b) { b._view = view; renderBinderPage(game); }
-}
-
-function removeCardFromBinder(game, id, number) {
-  const b = binders[game].find(b => b.id === id);
-  if (!b) return;
-  b.cardNumbers = b.cardNumbers.filter(n => n !== number);
-  saveBindersToSheet(game);
-  renderBinderPage(game);
-}
-
-function deleteBinder(game, id) {
-  if (!confirm('Delete this binder?')) return;
-  binders[game] = binders[game].filter(b => b.id !== id);
-  if (activeBinder[game] === id) activeBinder[game] = binders[game][0]?.id || null;
-  saveBindersToSheet(game);
-  renderBinderPage(game);
-}
-
-// ── ADD BINDER MODAL ──────────────────────────────────────────
-function openAddBinder(game) {
-  newBinderGame  = game;
-  newBinderGrid  = '2x2';
-  newBinderOrder = 'rl';
-  newBinderFrom  = 'set';
-  manualSelected = new Set();
-  document.getElementById('new-binder-name').value = '';
-  document.getElementById('add-binder-modal').classList.add('open');
-
-  // Populate set selector
-  const cards = state[game]?.cards || [];
-  const seen = new Set(), sets = [];
-  for (const c of cards) { if (c.setName && !seen.has(c.setName)) { seen.add(c.setName); sets.push(c.setName); } }
-  const setEl = document.getElementById('new-binder-set');
-  setEl.innerHTML = sets.map(s => `<option value="${x(s)}">${x(s)}</option>`).join('');
-
-  // Populate filter selects
-  const fSet = document.getElementById('filter-set-new');
-  fSet.innerHTML = '<option value="">All Sets</option>' + sets.map(s => `<option value="${x(s)}">${x(s)}</option>`).join('');
-  const rarities = [...new Set(cards.map(c => c.rarity).filter(Boolean))].sort();
-  const fRar = document.getElementById('filter-rarity-new');
-  fRar.innerHTML = '<option value="">All Rarities</option>' + rarities.map(r => `<option value="${x(r)}">${x(r)}</option>`).join('');
-
-  filterManualList();
-}
-
-function closeAddBinder()  { document.getElementById('add-binder-modal').classList.remove('open'); }
-function closeAddBinderOnBg(e) { if (e.target === document.getElementById('add-binder-modal')) closeAddBinder(); }
-
-function selectNewGrid(grid, el) {
-  newBinderGrid = grid;
-  document.querySelectorAll('#new-binder-grid .grid-opt').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-}
-
-function selectNewOrder(order) {
-  newBinderOrder = order;
-  document.getElementById('new-order-lr').classList.toggle('active', order === 'lr');
-  document.getElementById('new-order-rl').classList.toggle('active', order === 'rl');
-}
-
-function selectAddFrom(from, el) {
-  newBinderFrom = from;
-  document.querySelectorAll('#add-from-set,#add-from-filter,#add-from-manual').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('add-from-set-opts').style.display    = from === 'set'    ? '' : 'none';
-  document.getElementById('add-from-filter-opts').style.display = from === 'filter' ? '' : 'none';
-  document.getElementById('add-from-manual-opts').style.display = from === 'manual' ? '' : 'none';
-}
-
-function filterManualList() {
-  const q     = (document.getElementById('manual-search')?.value || '').toLowerCase();
-  const cards = (state[newBinderGame]?.cards || []).filter(c =>
-    !q || c.name.toLowerCase().includes(q) || c.number.toLowerCase().includes(q)
-  ).slice(0, 100);
-  const el = document.getElementById('manual-card-list');
-  if (!el) return;
-  el.innerHTML = cards.map(c => `
-    <label class="picker-row">
-      <input type="checkbox" ${manualSelected.has(c.number)?'checked':''} onchange="toggleManual('${x(c.number)}',this.checked)">
-      ${c.imageUrl ? `<img class="picker-thumb" src="${x(c.imageUrl)}" onerror="this.style.display='none'">` : ''}
-      <div class="picker-info">
-        <div class="picker-name">${x(c.name)}</div>
-        <div class="picker-meta">${x(c.number)} · ${x(c.rarity)} · ${x(c.setName)}</div>
-      </div>
-    </label>`).join('');
-  document.getElementById('manual-count').textContent = manualSelected.size + ' selected';
-}
-
-function toggleManual(number, checked) {
-  if (checked) manualSelected.add(number); else manualSelected.delete(number);
-  document.getElementById('manual-count').textContent = manualSelected.size + ' selected';
-}
-
-function createBinder() {
-  const name = document.getElementById('new-binder-name').value.trim();
-  if (!name) { toast('Please enter a binder name', 'err'); return; }
-  const game   = newBinderGame;
-  const cards  = state[game]?.cards || [];
-  let numbers  = [];
-
-  if (newBinderFrom === 'set') {
-    const set     = document.getElementById('new-binder-set').value;
-    const missing = document.getElementById('set-missing-only').checked;
-    numbers = cards.filter(c => (!set || c.setName === set) && (!missing || !c.owned)).map(c => c.number);
-  } else if (newBinderFrom === 'filter') {
-    const fSet    = document.getElementById('filter-set-new').value;
-    const fRar    = document.getElementById('filter-rarity-new').value;
-    const fOwned  = document.getElementById('filter-owned-new').value;
-    numbers = cards.filter(c =>
-      (!fSet  || c.setName === fSet) &&
-      (!fRar  || c.rarity  === fRar) &&
-      (fOwned === 'missing' ? !c.owned : fOwned === 'owned' ? c.owned : true)
-    ).map(c => c.number);
-  } else {
-    numbers = [...manualSelected];
-  }
-
-  if (numbers.length === 0) { toast('No cards match — adjust your filters', 'err'); return; }
-
-  const binder = {
-    id:          Date.now().toString(),
-    name,
-    grid:        newBinderGrid,
-    order:       newBinderOrder,
-    cardNumbers: numbers,
-    _spread:     0,
-    _view:       'binder',
-  };
-
-  binders[game].push(binder);
-  activeBinder[game] = binder.id;
-  saveBindersToSheet(game);
-  closeAddBinder();
-  renderBinderPage(game);
-  toast('✓ Binder "' + name + '" created with ' + numbers.length + ' cards', 'ok');
-}
-
-// ── ADD CARDS TO EXISTING BINDER ──────────────────────────────
-function openAddCardsModal(game, id) {
-  newBinderGame = game;
-  // Reuse the add modal but in "add to existing" mode
-  const b = binders[game].find(b => b.id === id);
-  if (!b) return;
-  document.getElementById('new-binder-name').value = b.name + ' (adding cards)';
-  document.getElementById('new-binder-name').disabled = true;
-  document.getElementById('add-binder-modal')._targetId = id;
-  openAddBinder(game);
-}
-
-// ── DRAG AND DROP REORDER ────────────────────────────────────
-let _dragSrcNumber = null;
-
-function clDragStart(e) {
-  _dragSrcNumber = e.currentTarget.dataset.number;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
-
-function clDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  e.currentTarget.classList.add('drag-over');
-}
-
-function clDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
-}
-
-function clDrop(e) {
-  e.preventDefault();
-  const el       = e.currentTarget;
-  el.classList.remove('drag-over');
-  const targetNum = el.dataset.number;
-  const game      = el.dataset.game;
-  const binderId  = el.dataset.binder;
-  if (!_dragSrcNumber || _dragSrcNumber === targetNum) return;
-
-  const b = binders[game].find(b => b.id === binderId);
-  if (!b) return;
-
-  const srcIdx = b.cardNumbers.indexOf(_dragSrcNumber);
-  const tgtIdx = b.cardNumbers.indexOf(targetNum);
-  if (srcIdx === -1 || tgtIdx === -1) return;
-
-  // Move src to target position
-  b.cardNumbers.splice(srcIdx, 1);
-  b.cardNumbers.splice(tgtIdx, 0, _dragSrcNumber);
-
-  saveBindersToSheet(game);
-  renderBinderPage(game);
-}
-
-function clDragEnd(e) {
-  e.currentTarget.classList.remove('dragging');
-  document.querySelectorAll('.cl-card').forEach(el => el.classList.remove('drag-over'));
-  _dragSrcNumber = null;
-}
-
-// ── PERSIST BINDERS TO SHEET ──────────────────────────────────
-async function saveBindersToSheet(game) {
-  const data = { game, binders: binders[game].map(b => ({
-    id: b.id, name: b.name, grid: b.grid, order: b.order, cardNumbers: b.cardNumbers
-  }))};
-  try {
-    await fetch(API_URL + '?action=saveBinders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(data),
-    });
-  } catch(e) { console.warn('Binder save failed:', e); }
-}
-
-async function loadBindersFromSheet() {
-  try {
-    const res  = await fetch(API_URL + '?action=getBinders');
-    const json = await res.json();
-    if (json.ok && json.binders) {
-      GAMES.forEach(game => {
-        binders[game] = (json.binders[game] || []).map(b => ({ ...b, _spread:0, _view:'binder' }));
-        if (binders[game].length) activeBinder[game] = binders[game][0].id;
-      });
-    }
-  } catch(e) { console.warn('Binder load failed:', e); }
-}
-
-// ── LEGACY BINDER FUNCTIONS (kept for PDF) ────────────────────
-const P_PER_PAGE = 9;
-const B_PER_PAGE = 4;
-function bCardsPerPage() { return 4; }
-
-async function bPrintNamed(game, id) {
-  const b = binders[game].find(b => b.id === id);
-  if (!b) return;
-  const cards = b.cardNumbers.map(n => state[game].cards.find(c => c.number === n)).filter(c => c && !c.owned);
-  // Reuse existing bPrint logic — temporarily override binderState
-  binderState[game] = { ...binderState[game], cards };
-  await bPrint(game);
-}
 
 async function bPrint(game) {
-  const cards = binderState[game]?.cards?.filter(c => !c.owned) || [];
+  const cards = binderState[game].cards.filter(c => !c.owned);
   if (!cards.length) { toast('No missing cards to print', 'ok'); return; }
-  const total = cards.length;
-  const pages = Math.ceil(total / 9);
+  const total = cards.length, pages = Math.ceil(total / 9);
   toast('⏳ Fetching ' + total + ' images…', 'ok');
 
   async function getDataUrl(url) {
     if (!url) return null;
     try {
       const proxyUrl = API_URL + '?action=img&url=' + encodeURIComponent(url);
-      const resp     = await fetch(proxyUrl);
+      const resp = await fetch(proxyUrl);
       if (!resp.ok) return null;
-      const b64text  = await resp.text();
-      if (!b64text || b64text.length < 100) return null;
-      const mime     = url.endsWith('.webp') ? 'image/webp' : url.endsWith('.png') ? 'image/png' : 'image/jpeg';
-      const dataUrl  = 'data:' + mime + ';base64,' + b64text;
+      const b64 = await resp.text();
+      if (!b64 || b64.length < 100) return null;
+      const mime = url.endsWith('.webp') ? 'image/webp' : url.endsWith('.png') ? 'image/png' : 'image/jpeg';
       return await new Promise(res => {
         const img = new Image();
         img.onload = () => {
           const c = document.createElement('canvas');
-          c.width = img.naturalWidth || 300; c.height = img.naturalHeight || 420;
-          c.getContext('2d').drawImage(img, 0, 0);
-          res(c.toDataURL('image/jpeg', 0.7));
+          c.width = img.naturalWidth||300; c.height = img.naturalHeight||420;
+          c.getContext('2d').drawImage(img,0,0);
+          res(c.toDataURL('image/jpeg',0.7));
         };
         img.onerror = () => res(null);
-        img.src = dataUrl;
+        img.src = 'data:' + mime + ';base64,' + b64;
       });
     } catch { return null; }
   }
 
   const dataUrls = new Array(total).fill(null);
-  const BATCH = 9;
-  for (let i = 0; i < total; i += BATCH) {
-    const batch = cards.slice(i, i + BATCH);
-    const results = await Promise.all(batch.map(c => getDataUrl(c.imageUrl)));
-    results.forEach((r, j) => { dataUrls[i + j] = r; });
-    toast('⏳ Fetched ' + Math.min(i + BATCH, total) + ' / ' + total + '…', 'ok');
+  for (let i = 0; i < total; i += 9) {
+    const results = await Promise.all(cards.slice(i, i+9).map(c => getDataUrl(c.imageUrl)));
+    results.forEach((r,j) => { dataUrls[i+j] = r; });
+    toast('⏳ Fetched ' + Math.min(i+9,total) + ' / ' + total + '…', 'ok');
   }
   toast('⏳ Building PDF…', 'ok');
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-  const PAGE_W=210,PAGE_H=297,MARGIN=8,GAP=3,COLS=3,ROWS=3;
-  const CARD_W=(PAGE_W-MARGIN*2-GAP*(COLS-1))/COLS;
-  const CARD_H=(PAGE_H-MARGIN*2-GAP*(ROWS-1))/ROWS;
-  const IMG_H=CARD_H-9;
+  const PW=210,PH=297,M=8,G=3,C=3,R=3;
+  const CW=(PW-M*2-G*(C-1))/C, CH=(PH-M*2-G*(R-1))/R, IH=CH-9;
+
   for (let i=0;i<total;i++) {
-    const cardPos=i%9,col=cardPos%COLS,row=Math.floor(cardPos/COLS);
-    if (cardPos===0&&i>0) doc.addPage();
-    const c=cards[i],pg=Math.floor(i/9)+1;
-    const x2=MARGIN+col*(CARD_W+GAP),y=MARGIN+row*(CARD_H+GAP);
-    if (cardPos===0){doc.setFontSize(6);doc.setTextColor(180);doc.text('Page '+pg+' / '+pages,PAGE_W/2,PAGE_H-2,{align:'center'});doc.setTextColor(0);}
-    doc.setDrawColor(60);doc.setLineWidth(0.25);doc.roundedRect(x2,y,CARD_W,CARD_H,1.5,1.5);
-    const imgData=dataUrls[i];
-    if (imgData){const imgW=CARD_W*0.55,imgX=x2+(CARD_W-imgW)/2,imgH2=imgW*(4/3),imgY=y+(IMG_H-imgH2)/2+4;
-      try{doc.addImage(imgData,'JPEG',imgX,imgY,imgW,imgH2,'','NONE');}catch(e){doc.setFillColor(240);doc.rect(imgX,imgY,imgW,imgH2,'F');}}
-    else{doc.setFillColor(240);doc.roundedRect(x2+2,y+4,CARD_W-4,IMG_H,1,1,'F');}
-    doc.setFontSize(4.5);doc.setTextColor(150);doc.text(c.setName||'',x2+2,y+3);
+    const pos=i%9, col=pos%C, row=Math.floor(pos/C);
+    if (pos===0&&i>0) doc.addPage();
+    const c=cards[i], pg=Math.floor(i/9)+1;
+    const cx=M+col*(CW+G), cy=M+row*(CH+G);
+    if (pos===0){doc.setFontSize(6);doc.setTextColor(180);doc.text('Page '+pg+' / '+pages,PW/2,PH-2,{align:'center'});doc.setTextColor(0);}
+    doc.setDrawColor(60);doc.setLineWidth(0.25);doc.roundedRect(cx,cy,CW,CH,1.5,1.5);
+    const d=dataUrls[i];
+    if(d){const iw=CW*0.55,ix=cx+(CW-iw)/2,ih=iw*(4/3),iy=cy+(IH-ih)/2+4;
+      try{doc.addImage(d,'JPEG',ix,iy,iw,ih,'','NONE');}catch(e){doc.setFillColor(240);doc.rect(ix,iy,iw,ih,'F');}}
+    else{doc.setFillColor(240);doc.roundedRect(cx+2,cy+4,CW-4,IH,1,1,'F');}
+    doc.setFontSize(4.5);doc.setTextColor(150);doc.text(c.setName||'',cx+2,cy+3);
     doc.setFontSize(6);doc.setFont('helvetica','bold');doc.setTextColor(20);
-    const nm=c.name.length>24?c.name.substring(0,23)+'…':c.name;
-    doc.text(nm,x2+CARD_W/2,y+CARD_H-4.5,{align:'center'});
+    doc.text((c.name.length>24?c.name.slice(0,23)+'…':c.name),cx+CW/2,cy+CH-4.5,{align:'center'});
     doc.setFontSize(5);doc.setFont('helvetica','normal');doc.setTextColor(100);
-    doc.text(c.number+' · '+c.rarity,x2+CARD_W/2,y+CARD_H-1.5,{align:'center'});doc.setTextColor(0);
+    doc.text(c.number+' · '+c.rarity,cx+CW/2,cy+CH-1.5,{align:'center'});doc.setTextColor(0);
   }
-  const gameName={digimon:'Digimon',gundam:'Gundam',riftbound:'Riftbound'}[game];
-  doc.save(gameName+'-missing.pdf');
-  toast('✓ PDF downloaded — '+total+' cards, '+pages+' pages','ok');
+  const gn={digimon:'Digimon',gundam:'Gundam',riftbound:'Riftbound'}[game];
+  const sv=(document.getElementById('b-set-'+game)?.value||'All').replace(/[^a-zA-Z0-9]/g,'-');
+  doc.save(gn+'-missing-'+sv+'.pdf');
+  toast('✓ PDF — '+total+' cards, '+pages+' pages','ok');
 }
 
 // ── SETTINGS ──────────────────────────────────────────────────
