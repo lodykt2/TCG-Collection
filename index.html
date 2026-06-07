@@ -573,6 +573,27 @@
 
 <div id="toast"></div>
 
+<!-- DECK LIST MODAL -->
+<div id="deck-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+  <div style="background:#13131c;border:1px solid rgba(255,255,255,0.1);border-radius:12px;width:480px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.6)">
+    <div style="padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;letter-spacing:2px;text-transform:uppercase" id="deck-modal-title">Deck List</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:2px" id="deck-modal-sub"></div>
+      </div>
+      <button onclick="closeDeckModal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;line-height:1">✕</button>
+    </div>
+    <div style="padding:16px 20px;flex:1;overflow-y:auto">
+      <textarea id="deck-modal-text" readonly
+        style="width:100%;height:300px;background:var(--bg-surface);border:1px solid var(--border);color:var(--text-primary);font-family:'Share Tech Mono',monospace;font-size:12px;line-height:1.6;padding:12px;border-radius:6px;resize:none;outline:none"></textarea>
+    </div>
+    <div style="padding:12px 20px 16px;display:flex;gap:8px;border-top:1px solid rgba(255,255,255,0.06)">
+      <button class="btn-action primary" onclick="copyDeckList()" id="copy-btn" style="flex:1;justify-content:center">📋 Copy to Clipboard</button>
+      <button class="btn-action" onclick="downloadDeckList()" style="flex:1;justify-content:center">⬇ Download .txt</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════════════
 //  !! PASTE YOUR APPS SCRIPT WEB APP URL HERE !!
@@ -771,6 +792,7 @@ function buildToolbar(game) {
     <div class="print-group">
       <button class="btn-action" onclick="printView('${game}','filtered')">⬇ Export View</button>
       <button class="btn-action" onclick="printView('${game}','all')">⬇ Export All</button>
+      <button class="btn-action" onclick="exportDeckList('${game}','filtered')">📋 Deck List</button>
     </div>`;
   updateOwnedBtns(game);
 }
@@ -1691,6 +1713,90 @@ async function loadSettings() {
     console.warn('Settings load failed:', e);
   }
 }
+
+// ── DECK LIST EXPORT ──────────────────────────────────────────
+
+const DECK_SITES = {
+  digimon:   'https://digimoncard.io/deckbuilder',
+  gundam:    'https://whitebase.dev',
+  riftbound: null,
+};
+
+let _deckListText = '';
+let _deckListGame = '';
+
+function exportDeckList(game, mode) {
+  const allCards = state[game].cards;
+  const filtered = getFiltered(game);
+  const source   = mode === 'filtered' ? filtered : allCards;
+
+  // Missing cards only
+  const missing = source.filter(c => !c.owned);
+  if (!missing.length) { toast('✓ No missing cards in current view', 'ok'); return; }
+
+  const gameName = { digimon:'DIGIMON TCG', gundam:'GUNDAM CARD GAME', riftbound:'RIFTBOUND TCG' }[game];
+  const site     = DECK_SITES[game];
+
+  // Build deck list — format: "1 CardName CardNumber"
+  const lines = missing.map(c => '1 ' + c.name + ' ' + c.number);
+  _deckListText = lines.join('
+');
+  _deckListGame = game;
+
+  // Update modal
+  document.getElementById('deck-modal-title').textContent = gameName + ' — Missing Cards';
+  document.getElementById('deck-modal-sub').textContent =
+    missing.length + ' cards' +
+    (site ? ' · Paste into ' + new URL(site).hostname : '');
+  document.getElementById('deck-modal-text').value = _deckListText;
+  document.getElementById('deck-modal').style.display = 'flex';
+}
+
+function closeDeckModal() {
+  document.getElementById('deck-modal').style.display = 'none';
+}
+
+function copyDeckList() {
+  navigator.clipboard.writeText(_deckListText).then(() => {
+    document.getElementById('copy-btn').textContent = '✓ Copied!';
+    setTimeout(() => { document.getElementById('copy-btn').textContent = '📋 Copy to Clipboard'; }, 2000);
+    toast('✓ Deck list copied to clipboard', 'ok');
+    const site = DECK_SITES[_deckListGame];
+    if (site) {
+      setTimeout(() => {
+        if (confirm('Open ' + new URL(site).hostname + ' to paste your deck list?')) {
+          window.open(site, '_blank');
+        }
+      }, 500);
+    }
+  }).catch(() => {
+    // Fallback for older browsers
+    const ta = document.getElementById('deck-modal-text');
+    ta.select();
+    document.execCommand('copy');
+    toast('✓ Copied!', 'ok');
+  });
+}
+
+function downloadDeckList() {
+  const gameName = _deckListGame || 'tcg';
+  const filename = gameName + '-missing-decklist.txt';
+  const blob     = new Blob([_deckListText], { type: 'text/plain' });
+  const url      = URL.createObjectURL(blob);
+  const a        = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('✓ Downloaded: ' + filename, 'ok');
+}
+
+// Close on background click
+document.addEventListener('click', e => {
+  const modal = document.getElementById('deck-modal');
+  if (modal && e.target === modal) closeDeckModal();
+});
 
 // ── TOAST ─────────────────────────────────────────────────────
 function toast(msg, type='ok') {
