@@ -703,12 +703,6 @@ function switchGame(game) {
 
 // Track which sub-view each game is on
 const gameViews = { digimon:'collection', gundam:'collection', riftbound:'collection' };
-// Track binder spread and view mode per game
-const binderState = {
-  digimon:   { spread:0, view:'binder', cards:[] },
-  gundam:    { spread:0, view:'binder', cards:[] },
-  riftbound: { spread:0, view:'binder', cards:[] },
-};
 
 function switchView(game, view) {
   gameViews[game] = view;
@@ -1739,15 +1733,15 @@ function exportDeckList(game, mode) {
 
   // Build deck list — format: "1 CardName CardNumber"
   const lines = missing.map(c => '1 ' + c.name + ' ' + c.number);
-  _deckListText = lines.join('
-');
+  _deckListText = lines.join("\n");
   _deckListGame = game;
 
   // Update modal
   document.getElementById('deck-modal-title').textContent = gameName + ' — Missing Cards';
+  const hostname = site ? site.replace('https://','').split('/')[0] : null;
   document.getElementById('deck-modal-sub').textContent =
     missing.length + ' cards' +
-    (site ? ' · Paste into ' + new URL(site).hostname : '');
+    (hostname ? ' · Paste into ' + hostname : '');
   document.getElementById('deck-modal-text').value = _deckListText;
   document.getElementById('deck-modal').style.display = 'flex';
 }
@@ -1764,7 +1758,8 @@ function copyDeckList() {
     const site = DECK_SITES[_deckListGame];
     if (site) {
       setTimeout(() => {
-        if (confirm('Open ' + new URL(site).hostname + ' to paste your deck list?')) {
+        const hostname = site.replace('https://','').split('/')[0];
+        if (confirm('Open ' + hostname + ' to paste your deck list?')) {
           window.open(site, '_blank');
         }
       }, 500);
