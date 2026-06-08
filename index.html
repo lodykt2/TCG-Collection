@@ -904,7 +904,11 @@ function renderCards(game){
 
 function renderGrid(cards,game){
   return`<div class="card-grid">`+cards.map(c=>`
-    <div class="card-item ${c.owned?'owned':'unowned'}" id="ci-${game}-${c.rowIndex}">
+    <div class="card-item ${c.owned?'owned':'unowned'}${selectMode?' selectable':''}${selectMode&&selectedCards.has(c.number)?' selected':''}"
+      id="ci-${game}-${c.rowIndex}"
+      data-number="${x(c.number)}"
+      data-game="${game}">
+      ${selectMode ? `<div class="card-check">${selectedCards.has(c.number)?'✓':''}</div>` : ''}
       <div class="card-img-wrap">
         ${c.imageUrl
           ? c.imageUrl.includes('gundam-gcg.com')
@@ -912,17 +916,15 @@ function renderGrid(cards,game){
             : `<img src="${x(c.imageUrl)}" alt="${x(c.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
           : ``}
         <div class="card-img-placeholder" style="${c.imageUrl?'display:none':''}"><span>${x(c.number)}</span></div>
-        ${c.owned?`<div class="owned-badge">✓</div>`:''}
+        ${!selectMode&&c.owned?`<div class="owned-badge">✓</div>`:''}
       </div>
       <div class="card-info">
         <div class="card-number">${x(c.number)}</div>
         <div class="card-name">${x(c.name)}</div>
         <div class="card-rarity">${x(c.rarity)}</div>
-          ${c.price ? `<div class="card-price">$${c.price.toFixed(2)}</div>` : ''}
+        ${c.price ? `<div class="card-price">$${c.price.toFixed(2)}</div>` : ''}
       </div>
-      <button class="card-toggle" onclick="toggleOwned('${game}',${c.rowIndex},${!c.owned})">
-        ${c.owned?'✕ Mark as Missing':'✓ Mark as Owned'}
-      </button>
+      ${!selectMode?`<button class="card-toggle" onclick="event.stopPropagation();toggleOwned('${game}',${c.rowIndex},${!c.owned})">${c.owned?'✕ Mark as Missing':'✓ Mark as Owned'}</button>`:''}
     </div>`).join('')+`</div>`;
 }
 
@@ -931,9 +933,14 @@ function renderTable(cards,game){
   const th=(col,label)=>`<th class="${s.col===col?'sorted':''}" onclick="sortBy('${game}','${col}')">
     ${label}<span class="sa">${s.col===col?(s.dir===1?'↑':'↓'):'↕'}</span></th>`;
   return`<div class="card-table-wrap"><table class="card-table">
-    <thead><tr><th style="width:52px">IMG</th>${th('number','Number')}${th('name','Name')}${th('setName','Set')}${th('rarity','Rarity')}${th('price','Price')}<th>Owned</th></tr></thead>
+    <thead><tr>${selectMode?'<th style="width:32px"></th>':''}<th style="width:52px">IMG</th>${th('number','Number')}${th('name','Name')}${th('setName','Set')}${th('rarity','Rarity')}${th('price','Price')}<th>Owned</th></tr></thead>
     <tbody>${cards.map(c=>`
-      <tr class="${c.owned?'owned':'unowned'}" id="tr-${game}-${c.rowIndex}">
+      <tr class="${c.owned?'owned':'unowned'}${selectMode&&selectedCards.has(c.number)?' selected':''}"
+        id="tr-${game}-${c.rowIndex}"
+        data-number="${x(c.number)}"
+        style="${selectMode?'cursor:pointer':''}"
+        data-game="${game}">
+        ${selectMode?`<td style="width:32px;text-align:center" onclick="event.stopPropagation()"><input type="checkbox" ${selectedCards.has(c.number)?'checked':''} onchange="toggleCardSelect('${game}','${x(c.number)}')"></td>`:''}
         <td>${c.imageUrl?`<img class="table-thumb" src="${x(c.imageUrl)}" alt="${x(c.name)}" loading="lazy" onerror="this.outerHTML='<div class=\\'thumb-ph\\'>—</div>'">`:
           `<div class="thumb-ph">—</div>`}</td>
         <td style="font-family:'Share Tech Mono',monospace;font-size:11px">${x(c.number)}</td>
@@ -952,6 +959,20 @@ function sortBy(game,col){
   s.col===col?s.dir*=-1:(s.col=col,s.dir=1);
   renderCards(game);
 }
+
+// ── CARD CLICK DELEGATION ────────────────────────────────────
+// Handles card selection clicks via event delegation on the grid container
+// Avoids onclick attribute quoting issues in template literals
+document.addEventListener('click', e => {
+  if (!selectMode) return;
+  const card = e.target.closest('.card-item[data-number]');
+  if (!card) return;
+  // Don't trigger if clicking the owned toggle button or checkbox
+  if (e.target.closest('.card-toggle') || e.target.closest('input[type=checkbox]')) return;
+  const number = card.dataset.number;
+  const game   = card.dataset.game || activeGame;
+  toggleCardSelect(game, number);
+});
 
 // ── PROXIED IMAGE LOADER ─────────────────────────────────────
 // Uses IntersectionObserver so we only fetch Gundam images as they scroll into view,
