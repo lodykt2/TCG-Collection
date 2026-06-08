@@ -95,8 +95,62 @@
   .card-name { font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:600; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .card-rarity { font-size:10px; color:var(--text-muted); margin-top:2px; }
   .card-price  { font-size:10px; color:#4ade80; font-family:'Share Tech Mono',monospace; margin-top:1px; font-weight:600; }
+
+  /* SELECTION MODE */
+  .card-item.selected { outline:2px solid var(--accent,#3b82f6); outline-offset:2px; }
+  .card-item.selectable { cursor:pointer; }
+  .card-check { position:absolute; top:6px; left:6px; width:18px; height:18px; border-radius:4px;
+    border:2px solid rgba(255,255,255,0.3); background:rgba(0,0,0,0.4); display:none;
+    align-items:center; justify-content:center; font-size:11px; color:#fff; z-index:2; pointer-events:none; }
+  .selectable .card-check { display:flex; }
+  .selected .card-check { background:var(--digi-accent); border-color:var(--digi-accent); }
+  .select-bar { position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:#13131c; border:1px solid rgba(255,255,255,0.15); border-radius:10px;
+    padding:10px 16px; display:flex; align-items:center; gap:12px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6); z-index:50; white-space:nowrap;
+    font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--text-muted);
+    transition:all 0.2s; }
+  .select-bar.hidden { opacity:0; pointer-events:none; transform:translateX(-50%) translateY(20px); }
+  .btn-select-mode { border-color:rgba(255,255,255,0.15); }
+  .btn-select-mode.active { border-color:rgba(59,130,246,0.5); color:#60a5fa; background:rgba(59,130,246,0.1); }
   .card-price  { font-size:10px; color:#4ade80; font-family:'Share Tech Mono',monospace; margin-top:1px; font-weight:600; }
+
+  /* SELECTION MODE */
+  .card-item.selected { outline:2px solid var(--accent,#3b82f6); outline-offset:2px; }
+  .card-item.selectable { cursor:pointer; }
+  .card-check { position:absolute; top:6px; left:6px; width:18px; height:18px; border-radius:4px;
+    border:2px solid rgba(255,255,255,0.3); background:rgba(0,0,0,0.4); display:none;
+    align-items:center; justify-content:center; font-size:11px; color:#fff; z-index:2; pointer-events:none; }
+  .selectable .card-check { display:flex; }
+  .selected .card-check { background:var(--digi-accent); border-color:var(--digi-accent); }
+  .select-bar { position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:#13131c; border:1px solid rgba(255,255,255,0.15); border-radius:10px;
+    padding:10px 16px; display:flex; align-items:center; gap:12px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6); z-index:50; white-space:nowrap;
+    font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--text-muted);
+    transition:all 0.2s; }
+  .select-bar.hidden { opacity:0; pointer-events:none; transform:translateX(-50%) translateY(20px); }
+  .btn-select-mode { border-color:rgba(255,255,255,0.15); }
+  .btn-select-mode.active { border-color:rgba(59,130,246,0.5); color:#60a5fa; background:rgba(59,130,246,0.1); }
   .card-price  { font-size:10px; color:#4ade80; font-family:'Share Tech Mono',monospace; margin-top:1px; font-weight:600; }
+
+  /* SELECTION MODE */
+  .card-item.selected { outline:2px solid var(--accent,#3b82f6); outline-offset:2px; }
+  .card-item.selectable { cursor:pointer; }
+  .card-check { position:absolute; top:6px; left:6px; width:18px; height:18px; border-radius:4px;
+    border:2px solid rgba(255,255,255,0.3); background:rgba(0,0,0,0.4); display:none;
+    align-items:center; justify-content:center; font-size:11px; color:#fff; z-index:2; pointer-events:none; }
+  .selectable .card-check { display:flex; }
+  .selected .card-check { background:var(--digi-accent); border-color:var(--digi-accent); }
+  .select-bar { position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:#13131c; border:1px solid rgba(255,255,255,0.15); border-radius:10px;
+    padding:10px 16px; display:flex; align-items:center; gap:12px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6); z-index:50; white-space:nowrap;
+    font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--text-muted);
+    transition:all 0.2s; }
+  .select-bar.hidden { opacity:0; pointer-events:none; transform:translateX(-50%) translateY(20px); }
+  .btn-select-mode { border-color:rgba(255,255,255,0.15); }
+  .btn-select-mode.active { border-color:rgba(59,130,246,0.5); color:#60a5fa; background:rgba(59,130,246,0.1); }
   .card-toggle { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.75); border:none; color:#fff; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px; padding:7px; cursor:pointer; opacity:0; transition:opacity 0.2s; text-align:center; }
   .card-item:hover .card-toggle { opacity:1; }
 
@@ -572,6 +626,13 @@
 </main>
 
 <div id="toast"></div>
+<div class="select-bar hidden" id="select-bar">
+  <span id="select-count">0 selected</span>
+  <button class="btn-action primary" onclick="exportSelected()">📋 Export Selected</button>
+  <button class="btn-action" onclick="selectAll()">Select All</button>
+  <button class="btn-action" onclick="clearSelection()">✕ Clear</button>
+  <button class="btn-action" onclick="toggleSelectMode(activeGame)">Done</button>
+</div>
 
 <!-- DECK LIST MODAL -->
 <div id="deck-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
@@ -787,6 +848,7 @@ function buildToolbar(game) {
       <button class="btn-action" onclick="printView('${game}','filtered')">⬇ Export View</button>
       <button class="btn-action" onclick="printView('${game}','all')">⬇ Export All</button>
       <button class="btn-action" onclick="exportDeckList('${game}','filtered')">📋 Deck List</button>
+      <button class="btn-action btn-select-mode" id="btn-select-${game}" onclick="toggleSelectMode('${game}')">☑ Select</button>
     </div>`;
   updateOwnedBtns(game);
 }
@@ -1706,6 +1768,79 @@ async function loadSettings() {
   } catch(e) {
     console.warn('Settings load failed:', e);
   }
+}
+
+// ── SELECTION MODE ────────────────────────────────────────────
+let selectMode  = false;
+let selectedCards = new Set(); // card numbers
+let activeGame  = 'digimon';
+
+function toggleSelectMode(game) {
+  activeGame  = game;
+  selectMode  = !selectMode;
+  selectedCards.clear();
+  updateSelectBar();
+  // Update button state
+  GAMES.forEach(g => {
+    const btn = document.getElementById('btn-select-' + g);
+    if (btn) btn.classList.toggle('active', selectMode && g === game);
+  });
+  // Re-render to add/remove checkboxes
+  renderCards(game);
+}
+
+function toggleCardSelect(game, number) {
+  if (!selectMode) return;
+  if (selectedCards.has(number)) {
+    selectedCards.delete(number);
+  } else {
+    selectedCards.add(number);
+  }
+  // Update card visual
+  const el = document.querySelector(`.card-item[data-number="${CSS.escape(number)}"]`);
+  if (el) el.classList.toggle('selected', selectedCards.has(number));
+  updateSelectBar();
+}
+
+function selectAll() {
+  const filtered = getFiltered(activeGame);
+  filtered.forEach(c => selectedCards.add(c.number));
+  document.querySelectorAll('.card-item').forEach(el => {
+    el.classList.add('selected');
+    const chk = el.querySelector('.card-check');
+    if (chk) chk.textContent = '✓';
+  });
+  updateSelectBar();
+}
+
+function clearSelection() {
+  selectedCards.clear();
+  document.querySelectorAll('.card-item.selected').forEach(el => el.classList.remove('selected'));
+  updateSelectBar();
+}
+
+function updateSelectBar() {
+  const bar = document.getElementById('select-bar');
+  const cnt = document.getElementById('select-count');
+  if (!bar) return;
+  bar.classList.toggle('hidden', !selectMode);
+  cnt.textContent = selectedCards.size + ' card' + (selectedCards.size !== 1 ? 's' : '') + ' selected';
+}
+
+function exportSelected() {
+  if (selectedCards.size === 0) { toast('No cards selected', 'err'); return; }
+  const cards  = state[activeGame].cards.filter(c => selectedCards.has(c.number));
+  const lines  = cards.map(c => '1 ' + c.name + ' ' + c.number);
+  _deckListText = lines.join('\n');
+  _deckListGame = activeGame;
+  const gameName = { digimon:'DIGIMON TCG', gundam:'GUNDAM CARD GAME', riftbound:'RIFTBOUND TCG' }[activeGame];
+  const site     = DECK_SITES[activeGame];
+  const hostname = site ? site.replace('https://','').split('/')[0] : null;
+  document.getElementById('deck-modal-title').textContent = gameName + ' — Selected Cards';
+  document.getElementById('deck-modal-sub').textContent =
+    cards.length + ' cards selected' + (hostname ? ' · Paste into ' + hostname : '');
+  document.getElementById('deck-modal-text').value = _deckListText;
+  document.getElementById('deck-modal').style.display = 'flex';
 }
 
 // ── DECK LIST EXPORT ──────────────────────────────────────────
