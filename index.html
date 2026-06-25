@@ -733,18 +733,27 @@ async function reloadAll() {
   }
 }
 
+
 // ── NAV ───────────────────────────────────────────────────────
 // ── DIGIMON SET SORT ─────────────────────────────────────────
 function digimonSetSortKey(setName) {
   const s = (setName || '').toUpperCase();
-  if (s.startsWith('BT'))  return '0-' + s;
-  if (s.startsWith('EX'))  return '1-' + s;
-  if (s.startsWith('ST'))  return '2-' + s;
-  if (s.startsWith('AD'))  return '3-' + s;
-  if (s.startsWith('RB'))  return '4-' + s;
-  if (s === 'LIMITED')     return '5-' + s;
-  if (s === 'PROMO')       return '6-' + s;
-  return '7-' + s;
+  const prefixOrder = { 'BT':0, 'EX':1, 'ST':2, 'AD':3, 'RB':4 };
+  // Match prefix + number e.g. "BT1", "BT19", "ST10"
+  const m = s.match(/^([A-Z]+)(\d+)/);
+  if (m) {
+    const order = prefixOrder[m[1]] !== undefined ? prefixOrder[m[1]] : 5;
+    return order + '-' + String(parseInt(m[2],10)).padStart(4,'0');
+  }
+  // Promo (P-xxx) and Limited (LM-xxx)
+  const pm = s.match(/^(LM|P)[- ]?(\d+)/);
+  if (pm) {
+    const g = pm[1]==='LM' ? '6' : '7';
+    return g + '-' + String(parseInt(pm[2],10)).padStart(4,'0');
+  }
+  if (s==='LIMITED') return '6-9999';
+  if (s==='PROMO')   return '7-9999';
+  return '8-' + s;
 }
 
 function sortSets(game, sets) {
