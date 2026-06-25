@@ -345,20 +345,26 @@
   /* Print preview sheets */
   .print-page-label { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; margin:24px 0 10px; display:flex; align-items:center; gap:12px; }
   .print-page-label::after { content:''; flex:1; height:1px; background:var(--border); }
-  /* A4 sheet — sized for actual print output not screen preview */
-  .a4-sheet { background:#fff; color:#000; width:210mm; min-height:297mm; margin:0 auto 12px; padding:8mm; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); gap:4mm; border:1px solid var(--border); border-radius:4px; }
-  .p-slot { border:1px solid #333; border-radius:4px; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:4px 4px 4px; background:#fff; overflow:hidden; position:relative; }
-  .p-slot.empty { border:1px dashed #ccc; background:#fafafa; }
-  .p-slot-tag { position:absolute; top:3px; left:4px; font-size:5px; font-family:'Share Tech Mono',monospace; color:#aaa; }
-  .p-img { flex:1; display:flex; align-items:center; justify-content:center; width:100%; padding:10px 6px 4px; }
-  .p-img img { max-width:75%; max-height:100%; object-fit:contain; border-radius:2px; }
-  .p-img-ph { width:55%; aspect-ratio:3/4; border:1px dashed #ddd; border-radius:4px; display:flex; align-items:center; justify-content:center; color:#ccc; font-size:8px; }
-  .p-info { width:100%; border-top:0.5px solid #eee; padding-top:3px; text-align:center; }
-  .p-name { font-size:7px; font-weight:700; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .p-meta { font-size:6px; color:#777; font-family:'Share Tech Mono',monospace; margin-top:1px; }
-  .p-slot::before,.p-slot::after { content:''; position:absolute; width:5px; height:5px; border-color:#ddd; border-style:solid; }
-  .p-slot::before { top:2px; left:2px; border-width:1px 0 0 1px; }
-  .p-slot::after  { bottom:2px; right:2px; border-width:0 1px 1px 0; }
+  /* A4 sheet — matches PDF layout exactly (14mm margins, shared borders, no gap) */
+  .a4-sheet { background:#fff; color:#000; width:210mm; height:297mm; margin:0 auto 12px;
+    padding:14mm; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+    gap:0; border:1px solid var(--border); border-radius:4px; box-sizing:border-box; }
+  .p-slot { border:none; display:flex; flex-direction:column; align-items:center;
+    justify-content:space-between; background:#fff; overflow:hidden; position:relative;
+    box-shadow:inset -0.3px -0.3px 0 0 #000, inset 0.3px 0.3px 0 0 #000; }
+  .p-slot.empty { background:#fafafa; }
+  /* Set name centered at top */
+  .p-slot-tag { width:100%; text-align:center; font-size:5px; font-family:'Share Tech Mono',monospace;
+    color:#aaa; padding-top:3px; }
+  /* Image area — 75% width centered */
+  .p-img { flex:1; display:flex; align-items:center; justify-content:center; width:100%; padding:2px 0; }
+  .p-img img { width:75%; aspect-ratio:3/4; object-fit:contain; display:block; }
+  .p-img-ph { width:55%; aspect-ratio:3/4; border:1px dashed #ddd; border-radius:2px;
+    display:flex; align-items:center; justify-content:center; color:#ccc; font-size:7px; }
+  /* Info below image */
+  .p-info { width:100%; text-align:center; padding-bottom:3px; }
+  .p-name { font-size:6.5px; font-weight:700; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 4px; }
+  .p-meta { font-size:5.5px; color:#777; font-family:'Share Tech Mono',monospace; }
 
   /* SETTINGS */
   .settings-btn { background:var(--bg-surface); border:1px solid var(--border); color:var(--text-muted); width:36px; height:36px; border-radius:var(--radius-sm); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
@@ -1578,19 +1584,22 @@ async function bPrint(game) {
     // Card image centered with padding
     const d=dataUrls[i];
     if(d){
-      const iw=CW*0.75, ix=cx+(CW-iw)/2, ih=iw*(4/3), iy=cy+(IH-ih)/2+2;
+      // 68% width — leaves room around image so card fits in sleeve
+      const iw=CW*0.68, ix=cx+(CW-iw)/2, ih=iw*(4/3), iy=cy+(IH-ih)/2+4;
       try{doc.addImage(d,'JPEG',ix,iy,iw,ih,'','NONE');}
       catch(e){doc.setFillColor(240);doc.rect(ix,iy,iw,ih,'F');}
     } else {
       doc.setFillColor(240);
-      doc.rect(cx+1,cy+1,CW-2,IH-1,'F');
+      doc.rect(cx+2,cy+2,CW-4,IH-2,'F');
     }
 
-    // Card info
-    doc.setFontSize(4);doc.setTextColor(160);doc.text(c.setName||'',cx+2,cy+3.5);
-    doc.setFontSize(6);doc.setFont('helvetica','bold');doc.setTextColor(20);
-    doc.text((c.name.length>24?c.name.slice(0,23)+'…':c.name),cx+CW/2,cy+CH-4.5,{align:'center'});
-    doc.setFontSize(5);doc.setFont('helvetica','normal');doc.setTextColor(100);
+    // Set name centered at top
+    doc.setFontSize(4);doc.setTextColor(160);
+    doc.text(c.setName||'',cx+CW/2,cy+3.5,{align:'center'});
+    // Card name and number centered at bottom
+    doc.setFontSize(5.5);doc.setFont('helvetica','bold');doc.setTextColor(20);
+    doc.text((c.name.length>26?c.name.slice(0,25)+'…':c.name),cx+CW/2,cy+CH-4,{align:'center'});
+    doc.setFontSize(4.5);doc.setFont('helvetica','normal');doc.setTextColor(100);
     doc.text(c.number+' · '+c.rarity,cx+CW/2,cy+CH-1.5,{align:'center'});doc.setTextColor(0);
   }
   const gn={digimon:'Digimon',gundam:'Gundam',riftbound:'Riftbound'}[game];
