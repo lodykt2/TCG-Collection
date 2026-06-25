@@ -1553,23 +1553,40 @@ async function bPrint(game) {
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-  const PW=210,PH=297,M=8,G=3,C=3,R=3;
-  const CW=(PW-M*2-G*(C-1))/C, CH=(PH-M*2-G*(R-1))/R, IH=CH-9;
+  // 14mm margins for printer safe zone, no gap between cards — shared borders = fewer cuts
+  const PW=210, PH=297, M=14, C=3, R=3;
+  const CW=(PW-M*2)/C, CH=(PH-M*2)/R, IH=CH-9;
 
   for (let i=0;i<total;i++) {
     const pos=i%9, col=pos%C, row=Math.floor(pos/C);
     if (pos===0&&i>0) doc.addPage();
     const c=cards[i], pg=Math.floor(i/9)+1;
-    const cx=M+col*(CW+G), cy=M+row*(CH+G);
-    if (pos===0){doc.setFontSize(6);doc.setTextColor(180);doc.text('Page '+pg+' / '+pages,PW/2,PH-2,{align:'center'});doc.setTextColor(0);}
-    doc.setDrawColor(60);doc.setLineWidth(0.25);doc.roundedRect(cx,cy,CW,CH,1.5,1.5);
+    const cx=M+col*CW, cy=M+row*CH;
+
+    // Page number footer
+    if (pos===0){doc.setFontSize(6);doc.setTextColor(180);doc.text('Page '+pg+' / '+pages,PW/2,PH-4,{align:'center'});doc.setTextColor(0);}
+
+    // Shared cut guide borders — draw only right+bottom per card,
+    // plus top/left for first row/col — so adjacent cards share one line
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.3);
+    if (row===0) doc.line(cx, cy, cx+CW, cy);         // top (first row only)
+    if (col===0) doc.line(cx, cy, cx, cy+CH);          // left (first col only)
+    doc.line(cx+CW, cy, cx+CW, cy+CH);                // right (always)
+    doc.line(cx, cy+CH, cx+CW, cy+CH);                // bottom (always)
+
+    // Card image centered with padding
     const d=dataUrls[i];
     if(d){
-      // Image centered with small padding from card border
-      const iw=CW*0.52, ix=cx+(CW-iw)/2, ih=iw*(4/3), iy=cy+(IH-ih)/2+3;
-      try{doc.addImage(d,'JPEG',ix,iy,iw,ih,'','NONE');}catch(e){doc.setFillColor(240);doc.rect(ix,iy,iw,ih,'F');}
+      const iw=CW*0.75, ix=cx+(CW-iw)/2, ih=iw*(4/3), iy=cy+(IH-ih)/2+2;
+      try{doc.addImage(d,'JPEG',ix,iy,iw,ih,'','NONE');}
+      catch(e){doc.setFillColor(240);doc.rect(ix,iy,iw,ih,'F');}
+    } else {
+      doc.setFillColor(240);
+      doc.rect(cx+1,cy+1,CW-2,IH-1,'F');
     }
-    else{doc.setFillColor(240);doc.roundedRect(cx+2,cy+4,CW-4,IH,1,1,'F');}
+
+    // Card info
     doc.setFontSize(4);doc.setTextColor(160);doc.text(c.setName||'',cx+2,cy+3.5);
     doc.setFontSize(6);doc.setFont('helvetica','bold');doc.setTextColor(20);
     doc.text((c.name.length>24?c.name.slice(0,23)+'…':c.name),cx+CW/2,cy+CH-4.5,{align:'center'});
