@@ -15,6 +15,7 @@
     --digi-accent:#3b82f6; --digi-glow:rgba(59,130,246,0.15);  --digi-border:rgba(59,130,246,0.3);  --digi-bright:#60a5fa;
     --gun-accent:#06b6d4;  --gun-glow:rgba(6,182,212,0.15);    --gun-border:rgba(6,182,212,0.3);    --gun-bright:#22d3ee;
     --rift-accent:#a855f7; --rift-glow:rgba(168,85,247,0.15);  --rift-border:rgba(168,85,247,0.3);  --rift-bright:#c084fc;
+    --pal-accent:#7cb342; --pal-glow:rgba(124,179,66,0.15); --pal-border:rgba(124,179,66,0.3); --pal-bright:#aed581;
     --radius-sm:6px; --radius-md:10px;
   }
   html { scroll-behavior:smooth; }
@@ -240,6 +241,7 @@
   [data-game="digimon"]   .sub-tab.active { color:var(--digi-bright);  border-bottom-color:var(--digi-accent); }
   [data-game="gundam"]    .sub-tab.active { color:var(--gun-bright);   border-bottom-color:var(--gun-accent); }
   [data-game="riftbound"] .sub-tab.active { color:var(--rift-bright);  border-bottom-color:var(--rift-accent); }
+  [data-game="palworld"]  .sub-tab.active { color:var(--pal-bright);   border-bottom-color:var(--pal-accent); }
   .binder-section { display:none; }
   .binder-section.active { display:block; }
 
@@ -547,6 +549,7 @@
   <button class="nav-tab active" data-game="digimon"   onclick="switchGame('digimon')"  >⬡ Digimon   <span class="nav-badge" id="badge-digimon">—</span></button>
   <button class="nav-tab"        data-game="gundam"    onclick="switchGame('gundam')"   >◈ Gundam    <span class="nav-badge" id="badge-gundam">—</span></button>
   <button class="nav-tab"        data-game="riftbound" onclick="switchGame('riftbound')">✦ Riftbound <span class="nav-badge" id="badge-riftbound">—</span></button>
+    <button class="nav-tab" data-game="palworld" onclick="switchGame('palworld')">🌿 Palworld <span class="nav-badge" id="badge-palworld">—</span></button>
 </nav>
 
 <!-- Sub nav — per game: Collection | Binder -->
@@ -561,6 +564,8 @@
 <nav class="sub-nav hidden" id="sub-nav-riftbound" data-game="riftbound">
   <button class="sub-tab active" data-game="riftbound" data-view="collection" onclick="switchView('riftbound','collection')">Collection</button>
   <button class="sub-tab"        data-game="riftbound" data-view="binder"     onclick="switchView('riftbound','binder')">Binder</button>
+
+  <button class="sub-tab active" data-game="palworld"  data-view="collection" onclick="switchView('palworld','collection')">Collection</button>
 </nav>
 
 <main id="main-area">
@@ -591,6 +596,9 @@
     <div class="toolbar" id="toolbar-riftbound"></div>
     <div id="cards-riftbound"><div class="loading-state"><div class="spinner"></div>Loading…</div></div>
   </section>
+
+  <!-- PALWORLD SECTION -->
+  <section class="game-section" id="section-palworld" data-game="palworld"></section>
 
   <!-- BINDER VIEWS -->
   <section class="binder-section" id="binder-digimon"   data-game="digimon">
@@ -668,12 +676,13 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbwnM-v-OBh0cxg5norTkOImOB8DVS4sivGA0UeA0_bvGG-wGZUbNaHXHFNXUaG71ujn/exec';
 // ══════════════════════════════════════════════════════════════
 
-const GAMES = ['digimon','gundam','riftbound'];
+const GAMES = ['digimon','gundam','riftbound','palworld'];
 
 const state = {
   digimon:   { cards:[], view:'grid', filters:{ set:'', rarity:'', owned:'', search:'' }, sort:{ col:'number', dir:1 }, loaded:false },
   gundam:    { cards:[], view:'grid', filters:{ set:'', rarity:'', owned:'', search:'' }, sort:{ col:'number', dir:1 }, loaded:false },
   riftbound: { cards:[], view:'grid', filters:{ set:'', rarity:'', owned:'', search:'' }, sort:{ col:'number', dir:1 }, loaded:false },
+  palworld:  { cards:[], view:'grid', filters:{ set:'', rarity:'', owned:'', search:'' }, sort:{ col:'number', dir:1 }, loaded:false },
 };
 
 // ── SETUP CHECK ───────────────────────────────────────────────
@@ -821,7 +830,7 @@ function renderStats(game) {
   const total     = cards.length;
   const owned     = cards.filter(c => c.owned).length;
   const pct       = total > 0 ? Math.round((owned / total) * 100) : 0;
-  const accent    = {digimon:'var(--digi-accent)',gundam:'var(--gun-accent)',riftbound:'var(--rift-accent)'}[game];
+  const accent    = {digimon:'var(--digi-accent)',gundam:'var(--gun-accent)',riftbound:'var(--rift-accent)',palworld:'var(--pal-accent)'}[game];
   const tag       = hasFilter ? ' <span style="font-size:9px;opacity:0.6;letter-spacing:1px">FILTERED</span>' : '';
 
   document.getElementById('stats-' + game).innerHTML = `
@@ -1351,6 +1360,7 @@ const binderState = {
   digimon:   { spread:0, view:'binder', cards:[] },
   gundam:    { spread:0, view:'binder', cards:[] },
   riftbound: { spread:0, view:'binder', cards:[] },
+  palworld:  { spread:0, view:'binder', cards:[] },
 };
 
 function bCardsPerPage() {
@@ -1627,6 +1637,7 @@ const SETTINGS = {
     digimon:   { accent:'#3b82f6', glow:'rgba(59,130,246,0.15)',  border:'rgba(59,130,246,0.3)',  bright:'#60a5fa' },
     gundam:    { accent:'#06b6d4', glow:'rgba(6,182,212,0.15)',   border:'rgba(6,182,212,0.3)',   bright:'#22d3ee' },
     riftbound: { accent:'#a855f7', glow:'rgba(168,85,247,0.15)',  border:'rgba(168,85,247,0.3)',  bright:'#c084fc' },
+    palworld:  { accent:'#7cb342', glow:'rgba(124,179,66,0.15)',  border:'rgba(124,179,66,0.3)',  bright:'#aed581' },
   },
   binderGrid:  '2x2r',  // 2x2, 2x2r (right-first), 3x3, 3x4, 4x4
   binderOrder: 'rl',    // 'lr' or 'rl'
@@ -1670,7 +1681,7 @@ function applyAccent(game, color) {
   };
 
   const root = document.documentElement;
-  const k = game === 'digimon' ? 'digi' : game === 'gundam' ? 'gun' : 'rift';
+  const k = game === 'digimon' ? 'digi' : game === 'gundam' ? 'gun' : game === 'riftbound' ? 'rift' : 'pal';
   root.style.setProperty(`--${k}-accent`, color);
   root.style.setProperty(`--${k}-glow`,   `rgba(${rgb},0.15)`);
   root.style.setProperty(`--${k}-border`, `rgba(${rgb},0.3)`);
@@ -1908,6 +1919,7 @@ const DECK_SITES = {
   digimon:   'https://digimoncard.io/deckbuilder',
   gundam:    'https://whitebase.dev',
   riftbound: null,
+  palworld:  null,
 };
 
 let _deckListText = '';
@@ -1998,3 +2010,7 @@ function toast(msg, type='ok') {
 </script>
 </body>
 </html>
+
+  <section class="binder-section" id="binder-palworld" data-game="palworld">
+    <div class="empty-state">Select a set to preview</div>
+  </section>
