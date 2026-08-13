@@ -598,7 +598,14 @@
   </section>
 
   <!-- PALWORLD SECTION -->
-  <section class="game-section" id="section-palworld" data-game="palworld"></section>
+  <section class="game-section" id="section-palworld" data-game="palworld" data-section="palworld">
+    <div class="section-header">
+      <div><div class="section-game-label">// PALWORLD TCG</div><h2 class="section-title">Card Collection</h2></div>
+      <div class="stats-row" id="stats-palworld"></div>
+    </div>
+    <div class="toolbar" id="toolbar-palworld"></div>
+    <div id="cards-palworld"><div class="loading-state"><div class="spinner"></div>Loading…</div></div>
+  </section>
 
   <!-- BINDER VIEWS -->
   <section class="binder-section" id="binder-digimon"   data-game="digimon">
@@ -735,7 +742,8 @@ async function reloadAll() {
     document.getElementById('status-dot').className = 'status-dot error';
     document.getElementById('status-text').textContent = 'Connection error';
     GAMES.forEach(g => {
-      document.getElementById('cards-' + g).innerHTML =
+      const el = document.getElementById('cards-' + g);
+      if (el) el.innerHTML =
         `<div class="empty-state">⚠ Could not load data<br><small style="color:var(--text-dim);font-size:11px">${err.message}</small></div>`;
     });
     toast('⚠ ' + err.message, 'err');
