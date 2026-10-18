@@ -1,0 +1,5 @@
+[
+{"id":"digimon","name":"Digimon Card Game","sort_order":1,"rarity_pattern":"^(C|U|R|SR|SEC|UR|P)$"},
+{"id":"gundam","name":"Gundam Card Game","sort_order":2,"rarity_pattern":"^(LK)?(C|U|R|LR|P)\\+{0,2}$"},
+{"id":"palworld","name":"Palworld Official Card Game","sort_order":3,"rarity_pattern":"^(C|U|R|RR|TD|PR|S|SR|OSR|SP|SSP|SSS|TSR|TSP|SEC)$"}
+]
