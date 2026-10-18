@@ -1,0 +1,102 @@
+# ============================================================
+#  Nightly backup of your TCG collection from Supabase.
+#  Put this file in your dashboard repository at:
+#      .github/workflows/backup.yml
+#  (on the main branch — GitHub only runs schedules from there)
+#
+#  It saves owned cards, cards, sets and the changelog as files in a
+#  separate "backups" branch. Every night is a commit, so the branch's
+#  history is your list of restore points.
+#
+#  Needs two repository VARIABLES (not secrets — both are public values):
+#    SUPABASE_URL              https://ewcnaeijypkivhnttpck.supabase.co
+#    SUPABASE_PUBLISHABLE_KEY  your publishable (anon) key
+# ============================================================
+name: Nightly backup
+
+on:
+  schedule:
+    - cron: "30 3 * * *"        # 03:30 UTC every day
+  workflow_dispatch:            # adds a "Run workflow" button for testing
+
+permissions:
+  contents: write               # allowed to push to the backups branch
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get (or create) the backups branch
+        env:
+          REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+        run: |
+          git clone --quiet --single-branch --branch backups "$REPO_URL" data \
+            || { mkdir data && cd data && git init -q -b backups && git remote add origin "$REPO_URL"; }
+
+      - name: Download from Supabase
+        working-directory: data
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          cat > /tmp/backup.mjs << 'SCRIPT'
+          import fs from "node:fs";
+          const BASE = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_KEY;
+          if (!BASE || !KEY) throw new Error("Set the SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY repository variables.");
+
+          // Supabase returns at most 1,000 rows per request, so read in pages.
+          async function readAll(table, order) {
+            const rows = [];
+            for (let offset = 0; ; offset += 1000) {
+              const res = await fetch(`${BASE}/rest/v1/${table}?select=*&order=${order}&limit=1000&offset=${offset}`,
+                                      { headers: { apikey: KEY } });
+              if (!res.ok) throw new Error(`${table}: HTTP ${res.status} ${await res.text()}`);
+              const page = await res.json();
+              rows.push(...page);
+              if (page.length < 1000) return rows;
+            }
+          }
+          // One row per line keeps day-to-day differences readable on GitHub.
+          const save = (file, rows) => fs.writeFileSync(file, "[\n" + rows.map((r) => JSON.stringify(r)).join(",\n") + "\n]\n");
+
+          const tables = { games: "id", sets: "game,code", cards: "game,card_id", owned: "game,card_id",
+                           update_log: "id", settings: "key" };
+          const data = {};
+          for (const [t, order] of Object.entries(tables)) data[t] = await readAll(t, order);
+
+          // Safety: refuse to overwrite a good backup with a suspiciously small one.
+          if (fs.existsSync("owned.json")) {
+            const before = JSON.parse(fs.readFileSync("owned.json", "utf8")).length;
+            if (before > 50 && data.owned.length < before * 0.5)
+              throw new Error(`Owned cards dropped from ${before} to ${data.owned.length} — not saving. Check Supabase.`);
+          }
+          for (const [t, rows] of Object.entries(data)) save(`${t}.json`, rows);
+
+          // Easy-to-read owned list per game.
+          const card = Object.fromEntries(data.cards.map((c) => [c.game + "|" + c.card_id, c]));
+          const csv = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+          for (const g of data.games) {
+            const lines = data.owned.filter((o) => o.game === g.id).map((o) => {
+              const c = card[o.game + "|" + o.card_id] ?? {};
+              return [o.card_id, c.card_number, c.variant, c.set_code, c.name, c.rarity, o.quantity, o.owned_at].map(csv).join(",");
+            });
+            fs.writeFileSync(`owned_${g.id}.csv`, "card_id,card_number,variant,set_code,name,rarity,quantity,owned_at\n" + lines.join("\n") + "\n");
+          }
+          const counts = Object.entries(data).map(([t, r]) => `| ${t} | ${r.length} |`).join("\n");
+          fs.writeFileSync("README.md", `# Collection backup\n\nLast run: ${new Date().toISOString()}\n\n| table | rows |\n|---|---|\n${counts}\n`);
+          console.log("Saved:", Object.entries(data).map(([t, r]) => `${t}=${r.length}`).join(" "));
+          SCRIPT
+          node /tmp/backup.mjs
+
+      - name: Save to the backups branch
+        working-directory: data
+        run: |
+          git config user.name  "collection-backup"
+          git config user.email "collection-backup@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing changed since the last backup."
+          else
+            git commit -q -m "Backup $(date -u +%F)"
+            git push -q origin backups
+          fi
