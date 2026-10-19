@@ -2,12 +2,14 @@
 //  collection.js — one game's cards: grid or list, filters,
 //  counters, and the prints drawer.
 // ============================================================
-import { h, fmt, pct, errorBox } from "../ui.js";
+import { h, fmt, pct, errorBox, toast } from "../ui.js";
 import { cardImage } from "../images.js";
-import { filterCards, sortCards, shownPrint } from "../cards.js";
+import { filterCards, sortCards, shownPrint, basePrint } from "../cards.js";
+import { openPrintWindow } from "../components/print-window.js";
+import { openDeckList } from "../components/deck-list.js";
 import { createDrawer } from "../components/prints-drawer.js";
 import { GAMES } from "../config.js";
-import { state, loadGame, loadSets } from "../store.js";
+import { state, loadGame, loadSets, bulkSetOwned } from "../store.js";
 import { explain } from "../supabase.js";
 
 const BATCH = 120;   // cards drawn at a time; more appear as you scroll
@@ -19,6 +21,8 @@ export function collectionPage(game) {
   let data = null, sets = [], sorted = [], visibleList = [], shown = 0;
   const tiles = new Map();              // card number → its tile, for quick updates
   let observer = null;
+  let selecting = false;                // select mode
+  const picked = new Set();             // selected card numbers
 
   const root = h("main", { class: "page collection" }, h("p", { class: "muted" }, "Loading " + meta.label + "…"));
   const drawer = createDrawer(game);
@@ -57,11 +61,70 @@ export function collectionPage(game) {
         h("span", { class: "spacer" }),
         resultEl,
         segmented("View", [["grid", "Grid"], ["list", "List"]], filters.view, (v) => { filters.view = v; apply(); })),
-      listEl, moreBtn, drawer.el);
+      h("div", { class: "actions", role: "toolbar", "aria-label": "Print and export" },
+        h("button", { class: "btn", onClick: printFromView }, "Print"),
+        h("button", { class: "btn", onClick: () => openDeckList(game, visibleList.filter((c) => !c.collected), meta.label + " — missing cards") }, "Deck list"),
+        h("button", { class: "btn", onClick: saveImages }, "Save as images"),
+        selectBtn),
+      listEl, moreBtn, selectBar, drawer.el);
     apply();
   }
 
   function setHasCards(code) { return data.cards.some((c) => c.set === code && (c.visible || state.settings.showHidden)); }
+
+  // ── printing / exporting ──
+  function printFromView() {
+    const code = filters.set || (visibleList[0] && visibleList[0].set);
+    openPrintWindow({ game, mode: "full", source: code ? { type: "set", code } : undefined })
+      .catch((err) => toast("Couldn't open the print window: " + explain(err), "err"));
+  }
+  async function saveImages() {
+    if (visibleList.length > 500 && !confirm("That's " + fmt(visibleList.length) + " cards (" + Math.ceil(visibleList.length / 50) + " pictures). Continue?")) return;
+    const { exportImages } = await import("../lib/export-image.js");
+    exportImages(game, visibleList, meta.label + " — " + (filters.set || "all sets")).catch((err) => toast("Couldn't save images: " + explain(err), "err"));
+  }
+
+  // ── select mode ──
+  const selectBtn = h("button", { class: "btn", "aria-pressed": "false", onClick: () => toggleSelect() }, "Select");
+  const pickedCount = h("span", { class: "mono" });
+  const adminButtons = h("span", { class: "row" });
+  const selectBar = h("div", { class: "select-bar", hidden: true, role: "toolbar", "aria-label": "Selected cards" },
+    pickedCount,
+    h("button", { class: "btn", onClick: () => { visibleList.forEach((c) => picked.add(c.number)); refreshPicks(); } }, "Select all shown"),
+    h("button", { class: "btn", onClick: () => { picked.clear(); refreshPicks(); } }, "Clear"),
+    h("button", { class: "btn", onClick: () => openPrintWindow({ game, mode: "full", source: filters.set ? { type: "set", code: filters.set } : { type: "set", code: pickedCards()[0] && pickedCards()[0].set },
+                                                                 preselect: pickedCards().map((c) => basePrint(c).id) }).catch((e) => toast(explain(e), "err")) }, "Print"),
+    h("button", { class: "btn", onClick: () => openDeckList(game, pickedCards(), meta.label + " — selected cards") }, "Deck list"),
+    adminButtons,
+    h("button", { class: "btn btn-accent", onClick: () => toggleSelect(false) }, "Done"));
+
+  function pickedCards() { return sorted.filter((c) => picked.has(c.number)); }
+  function toggleSelect(on = !selecting) {
+    selecting = on; picked.clear();
+    selectBtn.setAttribute("aria-pressed", String(on)); selectBtn.className = "btn" + (on ? " btn-active" : "");
+    selectBar.hidden = !on;
+    adminButtons.replaceChildren(...(state.isAdmin ? [
+      h("button", { class: "btn", onClick: () => bulk(true) }, "Mark owned"),
+      h("button", { class: "btn", onClick: () => bulk(false) }, "Mark not owned")] : []));
+    refreshPicks(); update();
+  }
+  function refreshPicks() {
+    pickedCount.textContent = fmt(picked.size) + " selected";
+    for (const [number, el] of tiles) { el.classList.toggle("picked", picked.has(number)); }
+  }
+  async function bulk(owned) {
+    const cards = pickedCards();
+    if (!cards.length) return;
+    // Marking owned uses each card's base print; un-marking clears every print of the card.
+    const ids = owned ? cards.map((c) => basePrint(c).id) : cards.flatMap((c) => c.prints.filter((p) => p.owned).map((p) => p.id));
+    if (!confirm((owned ? "Mark " : "Un-mark ") + cards.length + " cards as " + (owned ? "owned" : "not owned") + "? A restore point is saved first.")) return;
+    try {
+      const res = await bulkSetOwned(game, ids, owned);
+      data = state.games[game]; sorted = sortCards(data.cards, sets);
+      toast((res && res.changed != null ? res.changed : cards.length) + " cards updated");
+      picked.clear(); apply();
+    } catch (err) { toast("Not saved: " + explain(err), "err"); }
+  }
 
   // ── filtering + drawing ──
   function apply() {
@@ -76,12 +139,13 @@ export function collectionPage(game) {
     if (!list.length) listEl.replaceChildren(h("p", { class: "empty" }, "No cards match these filters."));
     drawMore();
     watchScroll();
+    refreshPicks();
   }
 
   function drawMore() {
     const next = visibleList.slice(shown, shown + BATCH);
     const target = filters.view === "list" ? listEl.querySelector("tbody") : listEl.querySelector(".card-grid");
-    if (target) for (const c of next) { const el = filters.view === "list" ? row(c) : tile(c); tiles.set(c.number, el); target.append(el); }
+    if (target) for (const c of next) { const el = filters.view === "list" ? row(c) : tile(c); if (picked.has(c.number)) el.classList.add("picked"); tiles.set(c.number, el); target.append(el); }
     shown += next.length;
     const left = visibleList.length - shown;
     moreBtn.hidden = left <= 0;
@@ -107,7 +171,7 @@ export function collectionPage(game) {
     const extra = c.prints.length - 1;
     return h("button", { class: "tile" + (c.collected ? " owned" : " missing"), "data-number": c.number,
                          "aria-label": c.number + " " + c.name + (c.collected ? ", collected" : ", missing"),
-                         onClick: () => drawer.open(c) },
+                         onClick: () => (selecting ? togglePick(c) : drawer.open(c)) },
       h("span", { class: "tile-img-wrap" },
         cardImage(shownPrint(c), { className: "tile-img" }),
         c.collected && h("span", { class: "tile-check", "aria-hidden": "true" }, "✓"),
@@ -115,6 +179,8 @@ export function collectionPage(game) {
       h("span", { class: "mono muted" }, c.number + " · " + (c.rarity || "—")),
       h("span", { class: "tile-name" }, c.name));
   }
+
+  function togglePick(c) { if (picked.has(c.number)) picked.delete(c.number); else picked.add(c.number); refreshPicks(); }
 
   // ── a card in the list (layout D) ──
   function tableShell() {
@@ -131,8 +197,8 @@ export function collectionPage(game) {
       h("td", {}, c.rarity || "—"),
       h("td", { class: "mono muted" }, owned + " / " + c.prints.length),
       h("td", { class: "muted" }, c.set));
-    tr.addEventListener("click", () => drawer.open(c));
-    tr.addEventListener("keydown", (e) => { if (e.key === "Enter") drawer.open(c); });
+    tr.addEventListener("click", () => (selecting ? togglePick(c) : drawer.open(c)));
+    tr.addEventListener("keydown", (e) => { if (e.key === "Enter") (selecting ? togglePick(c) : drawer.open(c)); });
     return tr;
   }
 
@@ -146,6 +212,7 @@ export function collectionPage(game) {
       el.replaceWith(filters.view === "list" ? row(c) : tile(c));
     }
     for (const el of listEl.querySelectorAll("[data-number]")) tiles.set(el.getAttribute("data-number"), el);
+    refreshPicks();
     drawer.refresh();
   }
 

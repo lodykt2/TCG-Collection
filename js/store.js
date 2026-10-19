@@ -142,3 +142,13 @@ export async function loadSets(game) {
   state.sets[game] = data;
   return data;
 }
+
+/** Mark many prints at once (signed-in admin). Uses the database's bulk_set_owned,
+ *  which saves a restore point first and logs each change. */
+export async function bulkSetOwned(game, printIds, owned) {
+  const { data, error } = await sb.rpc("bulk_set_owned", { p_game: game, p_card_ids: printIds, p_owned: owned });
+  if (error) throw error;
+  await loadGame(game, { force: true });
+  loadProgress().catch(() => {});
+  return data;                      // { changed, unknown_ids }
+}
