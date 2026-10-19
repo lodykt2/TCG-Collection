@@ -205,6 +205,11 @@ export function collectionPage(game) {
   // Called when something changes (e.g. you ticked a print): redraw only what's affected.
   function update() {
     if (!data) return;
+    const latest = state.games[game];
+    if (latest && latest !== data) {                       // new cards arrived: redraw once
+      data = latest; sorted = sortCards(data.cards, sets); latest.replaced = false;
+      apply(); drawer.refresh(); return;
+    }
     const { scope } = filterCards(sorted, filters, { showHidden: state.settings.showHidden });
     drawStats(scope);
     for (const [number, el] of tiles) {

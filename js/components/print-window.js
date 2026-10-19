@@ -11,6 +11,7 @@ import { sb, explain } from "../supabase.js";
 import { buildPdf, sheetsNeeded, PER_SHEET } from "../lib/pdf.js";
 import { loadMany, download } from "../lib/image-data.js";
 import { GAMES } from "../config.js";
+import { createProgress } from "./progress.js";
 
 /**
  * options: { game, mode: "full" | "placeholder", source: { type: "set", code } | { type: "binder", id },
@@ -37,6 +38,7 @@ export async function openPrintWindow({ game, mode = "full", source, preselect =
   const noteEl = h("p", { class: "muted small" });
   const cut = h("input", { type: "checkbox", checked: state.settings.cutLines });
   const printBtn = h("button", { class: "btn btn-primary", onClick: () => makePdf() }, "Download PDF");
+  const progress = createProgress();
 
   // ── source: a set, or a binder's sets in binder order ──
   function sourceCards() {
@@ -117,21 +119,28 @@ export async function openPrintWindow({ game, mode = "full", source, preselect =
     if (!items.length) return;
     busy = true; printBtn.disabled = true;
     try {
+      printBtn.textContent = "Working…";
+      progress.set(null, null, "Starting…");
       const { jsPDF } = await import("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm");
+      progress.set(0, items.length, "Loading images");
       const images = await loadMany(items.map((x) => x.print.image),
         { grayscale: mode !== "full", maxWidth: mode === "full" ? 750 : 400 },
-        (done, total) => { printBtn.textContent = "Preparing " + done + " / " + total + "…"; });
+        (done, total) => progress.set(done, total, "Loading images"));
+      progress.set(null, null, "Building the PDF…");
+      await new Promise((r) => setTimeout(r, 30));      // let the bar redraw first
       const doc = buildPdf(jsPDF, items.map((x, i) => ({
         name: x.card.name, number: x.card.number, rarity: x.card.rarity, dataUrl: images[i] && images[i].dataUrl,
       })), { mode, paper: state.settings.paper, cutLines: cut.checked });
       const label = source.type === "binder" ? "binder-" + source.id : source.code;
       download(game + "-" + label + "-" + (mode === "full" ? "cards" : "placeholders") + ".pdf", doc.output("blob"));
+      progress.finish("Done — your PDF is downloading");
       const missingImgs = images.filter((x) => !x).length;
       toast(missingImgs ? "PDF ready — " + missingImgs + " image(s) couldn't load and show as boxes" : "PDF ready");
     } catch (err) {
       toast("Couldn't make the PDF: " + explain(err), "err");
     } finally {
       busy = false; printBtn.textContent = "Download PDF"; refreshSide();
+      setTimeout(() => progress.hide(), 2500);
     }
   }
 
@@ -177,7 +186,7 @@ export async function openPrintWindow({ game, mode = "full", source, preselect =
         h("span", { class: "eyebrow" }, "Preview · sheet 1"),
         previewEl, noteEl,
         h("label", { class: "row small" }, cut, "Cut lines"))),
-    h("div", { class: "pw-foot" }, summaryEl, h("span", { class: "spacer" }),
+    h("div", { class: "pw-foot" }, summaryEl, progress.el, h("span", { class: "spacer" }),
       h("button", { class: "btn", onClick: () => close() }, "Cancel"), printBtn));
 
   if (Array.isArray(preselect)) preselect.forEach((id) => selected.add(id)); else selectMissing();

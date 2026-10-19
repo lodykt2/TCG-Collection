@@ -216,3 +216,16 @@ select.input { padding: 0 10px; }
 .pw-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 22px; border-top: 1px solid var(--line); }
 .pw-summary { font-family: var(--display); font-size: 18px; font-weight: 700; }
 .deck-text { height: 280px; padding: 12px; font-family: var(--mono); font-size: 12px; resize: vertical; }
+
+/* ── Progress ── */
+.progress { display: flex; flex-direction: column; gap: 4px; min-width: 220px; }
+.progress[hidden] { display: none; }
+.progress-track { display: block; height: 8px; border-radius: 99px; background: var(--hover); overflow: hidden; }
+.progress-fill { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.2s ease; }
+.progress-fill.busy { width: 100% !important; background: linear-gradient(90deg, var(--hover), var(--accent), var(--hover));
+                      background-size: 200% 100%; animation: progress-busy 1.2s linear infinite; }
+@keyframes progress-busy { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .progress-fill.busy { animation: none; } }
+.progress-label { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.progress-panel { position: fixed; right: 24px; bottom: 80px; z-index: 150; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px;
+                  border-radius: 12px; background: var(--panel); border: 1px solid var(--line-strong); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }

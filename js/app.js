@@ -3,7 +3,7 @@
 // ============================================================
 import { h, comingLater, errorBox } from "./ui.js";
 import { parse, onRoute } from "./router.js";
-import { state, subscribe, initAuth, loadSettings, loadProgress } from "./store.js";
+import { state, subscribe, initAuth, loadSettings, loadProgress, prefetchGames } from "./store.js";
 import { explain } from "./supabase.js";
 import { topbar } from "./components/topbar.js";
 import { openNewPassword } from "./components/signin.js";
@@ -45,7 +45,13 @@ function renderTop() {
   topEls = next;
 }
 
+let swapping = false;
 function renderPage() {
+  if (swapping) return;              // never start a page inside another page's start-up
+  swapping = true;
+  try { swapPage(); } finally { swapping = false; }
+}
+function swapPage() {
   const oldEl = current && current.el;
   if (current && current.destroy) current.destroy();
   const built = (PAGES[route.page] || PAGES["not-found"])(route);
@@ -84,6 +90,7 @@ async function start() {
   app.replaceChildren();
   render();
   subscribe(onStateChange);
+  prefetchGames(GAMES.map((g) => g.id));      // quietly, after the first page is up
   onRoute((r) => {
     route = r;
     if (r.game) { try { localStorage.setItem("lastGame", r.game); } catch (_) { /* private mode */ } }

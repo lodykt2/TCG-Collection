@@ -5,15 +5,19 @@
 import { loadMany, download } from "./image-data.js";
 import { shownPrint } from "../cards.js";
 import { toast } from "../ui.js";
+import { floatingProgress } from "../components/progress.js";
 
 const COLS = 10, ROWS = 5, W = 250, H = 349, LABEL = 46, GAP = 8, PAD = 24, HEAD = 70;
 
 export async function exportImages(game, cards, title) {
   const per = COLS * ROWS, pages = Math.ceil(cards.length / per);
+  const bar = floatingProgress("Saving " + cards.length + " cards as " + pages + (pages === 1 ? " picture" : " pictures"));
+  try {
   for (let p = 0; p < pages; p++) {
     const chunk = cards.slice(p * per, (p + 1) * per);
-    toast("Preparing picture " + (p + 1) + " of " + pages + "…");
-    const imgs = await loadMany(chunk.map((c) => shownPrint(c).image), { maxWidth: W });
+    const imgs = await loadMany(chunk.map((c) => shownPrint(c).image), { maxWidth: W },
+      (done) => bar.set(p * per + done, cards.length, "Loading images"));
+    bar.set(null, null, "Drawing picture " + (p + 1) + " of " + pages + "…");
     const rows = Math.ceil(chunk.length / COLS);
     const canvas = document.createElement("canvas");
     canvas.width = PAD * 2 + COLS * W + (COLS - 1) * GAP;
@@ -36,6 +40,7 @@ export async function exportImages(game, cards, title) {
     const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.9));
     download(game + "-cards" + (pages > 1 ? "-" + (p + 1) : "") + ".jpg", blob);
   }
+  } finally { bar.close(); }
   toast("Saved " + pages + (pages === 1 ? " picture" : " pictures"));
 }
 
