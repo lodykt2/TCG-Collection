@@ -30,7 +30,8 @@ export function createDrawer(game) {
     const prints = sortPrints(card.prints);
     const ownedCount = prints.filter((p) => p.owned).length;
     const canEdit = state.isAdmin;
-    panel.replaceChildren(
+    // .filter(Boolean) drops the parts that don't apply (otherwise the browser writes "false")
+    panel.replaceChildren(...[
       h("div", { class: "drawer-head" },
         h("div", {},
           h("div", { class: "mono muted" }, [card.number, card.rarity, preview.color, preview.type].filter(Boolean).join(" · ")),
@@ -43,7 +44,8 @@ export function createDrawer(game) {
         h("span", { class: card.collected ? "badge badge-ok" : "badge" },
           card.collected ? "Collected · " + ownedCount + " of " + prints.length + " owned" : "Missing")),
       h("div", { class: "print-list" }, prints.map((p) => printRow(p, canEdit))),
-      !canEdit && h("p", { class: "muted small" }, "Sign in to mark cards as owned."));
+      !canEdit && h("p", { class: "muted small" }, "Sign in to mark cards as owned."),
+    ].filter(Boolean));
   }
 
   function printRow(p, canEdit) {
