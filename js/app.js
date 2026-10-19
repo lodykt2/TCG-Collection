@@ -10,6 +10,7 @@ import { openNewPassword } from "./components/signin.js";
 import { homePage } from "./pages/home.js";
 import { collectionPage } from "./pages/collection.js";
 import { binderPage } from "./pages/binders.js";
+import { changelogPage } from "./pages/changelog.js";
 import { binderEditPage } from "./pages/binder-edit.js";
 import { GAMES } from "./config.js";
 
@@ -22,7 +23,7 @@ const PAGES = {
   "binders":     (r) => binderPage(r.game, null),
   "binder":      (r) => binderPage(r.game, r.id),
   "binder-edit": (r) => adminOnly(() => binderEditPage(r.game, r.id)),
-  "changelog":   () => comingLater("Changelog", 6),
+  "changelog":   () => changelogPage(),
   "admin":       () => adminOnly(() => comingLater("Admin", 7)),
   "settings":    () => adminOnly(() => comingLater("Settings", 7)),
   "not-found":   () => h("main", { class: "page narrow" }, h("h1", { class: "page-title" }, "Page not found"),

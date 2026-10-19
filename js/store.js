@@ -88,6 +88,8 @@ export async function loadProgress() {
   const { data, error } = await sb.from("game_progress").select("*").order("sort_order");
   if (error) throw error;
   state.progress = data;
+  state.setProgress = null;          // set counts and the changelog are fetched fresh next time
+  state.log = null;
   emit();
 }
 export const progressFor = (game) => state.progress.find((p) => p.game === game);
@@ -293,4 +295,32 @@ export async function deleteBinder(game, id) {
   if (error) throw error;
   await loadBinders(game, { force: true });
   emit();
+}
+
+// ── CHANGELOG, SET PROGRESS, PENDING ─────────────────────────
+const LOG_ACTIONS = ["New Card", "New Alt Art", "New Set", "Removed", "Excluded", "Owned", "Merge", "Baseline"];
+export async function loadLog({ force = false } = {}) {
+  if (state.log && !force) return state.log;
+  const since = new Date(Date.now() - 400 * 86400000).toISOString();     // about the last year
+  const { data, error } = await sb.from("update_log").select("id,at,game,action,card_id,set_code,details,source")
+    .in("action", LOG_ACTIONS).gte("at", since).order("id", { ascending: false }).limit(5000);
+  if (error) throw error;
+  // timestamps always as ISO text, whatever form they arrive in
+  state.log = data.map((r) => ({ ...r, id: Number(r.id), at: new Date(r.at).toISOString(), game: String(r.game || "").toLowerCase() }));
+  return state.log;
+}
+
+export async function loadSetProgress({ force = false } = {}) {
+  if (state.setProgress && !force) return state.setProgress;
+  const { data, error } = await sb.from("set_progress").select("*");
+  if (error) throw error;
+  state.setProgress = data.map((r) => ({ ...r, cards: Number(r.cards), collected: Number(r.collected), missing: Number(r.missing) }));
+  return state.setProgress;
+}
+
+/** Changes waiting for your Approve / Reject (only readable when you're signed in). */
+export async function pendingCount() {
+  if (!state.isAdmin) return 0;
+  const { data, error } = await sb.from("pending").select("id");
+  return error ? 0 : data.length;
 }
