@@ -6,7 +6,8 @@
 import { h, openModal, toast, fmt } from "../ui.js";
 import { cardImage } from "../images.js";
 import { sortCards, sortPrints, basePrint } from "../cards.js";
-import { state, loadGame, loadSets } from "../store.js";
+import { state, loadGame, loadSets, loadBinders } from "../store.js";
+import { layoutBinder } from "../lib/binder-layout.js";
 import { sb, explain } from "../supabase.js";
 import { buildPdf, sheetsNeeded, PER_SHEET } from "../lib/pdf.js";
 import { loadMany, download } from "../lib/image-data.js";
@@ -19,12 +20,13 @@ import { createProgress } from "./progress.js";
  */
 export async function openPrintWindow({ game, mode = "full", source, preselect = "missing" }) {
   const [data, sets] = await Promise.all([loadGame(game), loadSets(game)]);
-  const { data: binders } = await sb.from("binders").select("id,name").eq("game", game).order("sort_order");
-  const binderSets = {};
-  if (binders && binders.length) {
-    const { data: bs } = await sb.from("binder_sets").select("binder_id,set_code,position").eq("game", game).order("position");
-    for (const r of bs || []) (binderSets[r.binder_id] = binderSets[r.binder_id] || []).push(r.set_code);
-  }
+  const binders = await loadBinders(game);
+  const visibleBySet = () => {
+    const m = new Map();
+    for (const c of sortCards(data.cards, sets)) if (c.visible) { if (!m.has(c.set)) m.set(c.set, []); m.get(c.set).push(c); }
+    return m;
+  };
+  let layout = null;                                 // where each card sits, when printing from a binder
   const setsWithCards = sets.filter((s) => data.cards.some((c) => c.set === s.code && c.visible));
   if (!source) source = { type: "set", code: setsWithCards[0] && setsWithCards[0].code };
 
@@ -37,18 +39,30 @@ export async function openPrintWindow({ game, mode = "full", source, preselect =
   const summaryEl = h("span", { class: "pw-summary" });
   const noteEl = h("p", { class: "muted small" });
   const cut = h("input", { type: "checkbox", checked: state.settings.cutLines });
+  const showWhere = h("input", { type: "checkbox", checked: true });
+  showWhere.addEventListener("change", () => refreshSide());
+  const whereRow = h("label", { class: "row small" }, showWhere, "Show binder location on each placeholder");
   const printBtn = h("button", { class: "btn btn-primary", onClick: () => makePdf() }, "Download PDF");
   const progress = createProgress();
 
   // ── source: a set, or a binder's sets in binder order ──
   function sourceCards() {
-    let codes;
-    if (source.type === "binder") codes = binderSets[source.id] || [];
-    else codes = [source.code];
-    const order = new Map(codes.map((c, i) => [c, i]));
-    const picked = data.cards.filter((c) => order.has(c.set) && c.visible);
-    return sortCards(picked, sets).sort((a, b) => order.get(a.set) - order.get(b.set));
+    if (source.type === "binder") {
+      const b = binders.find((x) => x.id === source.id);
+      if (!b) return [];
+      layout = layoutBinder(b, visibleBySet());
+      // binder order: page by page, pocket by pocket
+      return [...layout.where.entries()].sort((x, y) => x[1].page - y[1].page || x[1].pocket - y[1].pocket)
+        .map(([n]) => data.byNumber.get(n));
+    }
+    layout = null;
+    return sortCards(data.cards.filter((c) => c.set === source.code && c.visible), sets);
   }
+  const whereText = (card) => {
+    if (!layout) return "";
+    const w = layout.where.get(card.number), b = binders.find((x) => x.id === source.id);
+    return w ? b.name + " · page " + w.page + " · pocket " + w.pocket : "";
+  };
 
   function listed() { const all = sourceCards(); return show === "missing" ? all.filter((c) => !c.collected) : all; }
 
@@ -105,8 +119,10 @@ export async function openPrintWindow({ game, mode = "full", source, preselect =
       ? h("div", { class: "pw-cell" }, cardImage(print, { className: "pw-cell-img" }))
       : h("div", { class: "pw-cell" },
           cardImage(print, { className: "pw-cell-img gray" }),
+          showWhere.checked && layout && h("span", { class: "pw-cell-where" }, whereText(card)),
           h("span", { class: "pw-cell-name" }, card.name),
           h("span", { class: "pw-cell-meta" }, card.number + " · " + (card.rarity || "")))));
+    whereRow.hidden = !(mode !== "full" && layout);
     noteEl.textContent = mode === "full"
       ? "Full card in color at real card size (63 × 88 mm) · 9 per sheet"
       : "Small grayscale image with name, number and rarity · 9 per sheet";
@@ -130,8 +146,10 @@ export async function openPrintWindow({ game, mode = "full", source, preselect =
       await new Promise((r) => setTimeout(r, 30));      // let the bar redraw first
       const doc = buildPdf(jsPDF, items.map((x, i) => ({
         name: x.card.name, number: x.card.number, rarity: x.card.rarity, dataUrl: images[i] && images[i].dataUrl,
+        where: mode !== "full" && showWhere.checked ? whereText(x.card) : "",
       })), { mode, paper: state.settings.paper, cutLines: cut.checked });
-      const label = source.type === "binder" ? "binder-" + source.id : source.code;
+      const b = source.type === "binder" && binders.find((x) => x.id === source.id);
+      const label = b ? b.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") : source.code;
       download(game + "-" + label + "-" + (mode === "full" ? "cards" : "placeholders") + ".pdf", doc.output("blob"));
       progress.finish("Done — your PDF is downloading");
       const missingImgs = images.filter((x) => !x).length;
@@ -184,7 +202,7 @@ export async function openPrintWindow({ game, mode = "full", source, preselect =
         listEl),
       h("div", { class: "pw-right" },
         h("span", { class: "eyebrow" }, "Preview · sheet 1"),
-        previewEl, noteEl,
+        previewEl, noteEl, whereRow,
         h("label", { class: "row small" }, cut, "Cut lines"))),
     h("div", { class: "pw-foot" }, summaryEl, progress.el, h("span", { class: "spacer" }),
       h("button", { class: "btn", onClick: () => close() }, "Cancel"), printBtn));

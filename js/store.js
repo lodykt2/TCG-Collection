@@ -253,3 +253,44 @@ export async function bulkSetOwned(game, printIds, owned) {
   refreshProgressSoon();
   return data;                      // { changed, unknown_ids }
 }
+
+// ── BINDERS ───────────────────────────────────────────────────
+export async function loadBinders(game, { force = false } = {}) {
+  state.binders = state.binders || {};
+  if (state.binders[game] && !force) return state.binders[game];
+  const [b, s] = await Promise.all([
+    sb.from("binders").select("id,name,pages,reading_order,sort_order").eq("game", game).order("sort_order"),
+    sb.from("binder_sets").select("binder_id,set_code,position,new_page").eq("game", game).order("position"),
+  ]);
+  if (b.error) throw b.error;
+  if (s.error) throw s.error;
+  const ids = b.data.map((x) => x.id);
+  let adj = [];
+  if (ids.length) {
+    const a = await sb.from("binder_adjustments").select("binder_id,kind,after_kind,after_value,count").in("binder_id", ids).order("id");
+    if (a.error) throw a.error;
+    adj = a.data;
+  }
+  // IDs are always numbers here (some setups return big numbers as text)
+  state.binders[game] = b.data.map((x) => ({
+    ...x, id: Number(x.id), pages: Number(x.pages),
+    sets: s.data.filter((r) => Number(r.binder_id) === Number(x.id)).map((r) => ({ code: r.set_code, new_page: r.new_page })),
+    adjustments: adj.filter((r) => Number(r.binder_id) === Number(x.id)).map((r) => ({ ...r, count: Number(r.count) })),
+  }));
+  return state.binders[game];
+}
+
+export async function saveBinder(binder) {
+  const { data, error } = await sb.rpc("save_binder", { p: binder });
+  if (error) throw error;
+  await loadBinders(binder.game, { force: true });
+  emit();
+  return Number(data);               // the binder's id
+}
+
+export async function deleteBinder(game, id) {
+  const { error } = await sb.from("binders").delete().match({ id, game });
+  if (error) throw error;
+  await loadBinders(game, { force: true });
+  emit();
+}

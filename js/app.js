@@ -9,6 +9,8 @@ import { topbar } from "./components/topbar.js";
 import { openNewPassword } from "./components/signin.js";
 import { homePage } from "./pages/home.js";
 import { collectionPage } from "./pages/collection.js";
+import { binderPage } from "./pages/binders.js";
+import { binderEditPage } from "./pages/binder-edit.js";
 import { GAMES } from "./config.js";
 
 const app = document.getElementById("app");
@@ -17,9 +19,9 @@ let route = parse();
 const PAGES = {
   "home":        () => homePage(),
   "collection":  (r) => collectionPage(r.game),
-  "binders":     () => comingLater("Binders", 5),
-  "binder":      () => comingLater("Binder", 5),
-  "binder-edit": () => adminOnly(() => comingLater("Edit binder", 5)),
+  "binders":     (r) => binderPage(r.game, null),
+  "binder":      (r) => binderPage(r.game, r.id),
+  "binder-edit": (r) => adminOnly(() => binderEditPage(r.game, r.id)),
   "changelog":   () => comingLater("Changelog", 6),
   "admin":       () => adminOnly(() => comingLater("Admin", 7)),
   "settings":    () => adminOnly(() => comingLater("Settings", 7)),
