@@ -1,7 +1,7 @@
 // ============================================================
 //  app.js — starts the dashboard and swaps pages when the address changes.
 // ============================================================
-import { h, comingLater, errorBox } from "./ui.js";
+import { h, errorBox } from "./ui.js";
 import { parse, onRoute } from "./router.js";
 import { state, subscribe, initAuth, loadSettings, loadProgress, prefetchGames } from "./store.js";
 import { explain } from "./supabase.js";
@@ -11,6 +11,8 @@ import { homePage } from "./pages/home.js";
 import { collectionPage } from "./pages/collection.js";
 import { binderPage } from "./pages/binders.js";
 import { changelogPage } from "./pages/changelog.js";
+import { adminPage } from "./pages/admin.js";
+import { settingsPage } from "./pages/settings.js";
 import { binderEditPage } from "./pages/binder-edit.js";
 import { GAMES } from "./config.js";
 
@@ -24,8 +26,8 @@ const PAGES = {
   "binder":      (r) => binderPage(r.game, r.id),
   "binder-edit": (r) => adminOnly(() => binderEditPage(r.game, r.id)),
   "changelog":   () => changelogPage(),
-  "admin":       () => adminOnly(() => comingLater("Admin", 7)),
-  "settings":    () => adminOnly(() => comingLater("Settings", 7)),
+  "admin":       () => adminOnly(() => adminPage()),
+  "settings":    () => adminOnly(() => settingsPage()),
   "not-found":   () => h("main", { class: "page narrow" }, h("h1", { class: "page-title" }, "Page not found"),
                           h("p", {}, h("a", { href: "#/" }, "Back to Home"))),
 };
@@ -63,11 +65,26 @@ function swapPage() {
   document.title = "TCG Dashboard" + (route.game ? " · " + GAMES.find((g) => g.id === route.game).label : "");
 }
 
-function render() { applyTheme(); renderTop(); renderPage(); }
+function render() { applyTheme(); renderTop(); renderPage(); measureNav(); }
 
+/** The navigation bar's height, so other fixed areas can sit right under it. */
+function measureNav() {
+  const nav = document.querySelector(".navbar");
+  if (nav && nav.offsetHeight) document.documentElement.style.setProperty("--nav-h", nav.offsetHeight + "px");
+}
+window.addEventListener("resize", measureNav);
+
+let lastAdmin = null;
 function onStateChange() {
   applyTheme();
   renderTop();
+  // Signing in or out always rebuilds the page, so admin-only content never lingers on screen.
+  // (Pages that adjust themselves to it — collection, binders — just update instead.)
+  if (state.isAdmin !== lastAdmin) {
+    lastAdmin = state.isAdmin;
+    if (current && current.keepOnAuth && current.update) current.update(); else renderPage();
+    return;
+  }
   if (current && current.update) current.update(); else renderPage();
 }
 
@@ -91,6 +108,7 @@ async function start() {
     if (last && GAMES.some((g) => g.id === last)) { history.replaceState(null, "", "#/" + last); route = parse(); }
   }
   app.replaceChildren();
+  lastAdmin = state.isAdmin;
   render();
   subscribe(onStateChange);
   prefetchGames(GAMES.map((g) => g.id));      // quietly, after the first page is up

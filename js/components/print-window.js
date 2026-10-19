@@ -13,6 +13,8 @@ import { buildPdf, sheetsNeeded, PER_SHEET } from "../lib/pdf.js";
 import { loadMany, download } from "../lib/image-data.js";
 import { GAMES } from "../config.js";
 import { createProgress } from "./progress.js";
+import { createSetPicker, toTree } from "./set-picker.js";
+import { groupSets } from "../lib/set-groups.js";
 
 /**
  * options: { game, mode: "full" | "placeholder", source: { type: "set", code } | { type: "binder", id },
@@ -163,16 +165,20 @@ export async function openPrintWindow({ game, mode = "full", source, preselect =
   }
 
   // ── header controls ──
-  const sourceSel = h("select", { class: "input slim", "aria-label": "Cards from" },
-    h("optgroup", { label: "Sets" }, setsWithCards.map((s) =>
-      h("option", { value: "set:" + s.code, selected: source.type === "set" && source.code === s.code }, s.code + " · " + s.name))),
-    binders && binders.length ? h("optgroup", { label: "Binders" }, binders.map((b) =>
-      h("option", { value: "binder:" + b.id, selected: source.type === "binder" && source.id === b.id }, b.name))) : null);
-  sourceSel.addEventListener("change", () => {
-    const [type, v] = sourceSel.value.split(":");
-    source = type === "binder" ? { type, id: Number(v) } : { type, code: v };
-    selected.clear(); selectMissing(); drawList(); refreshSide();
-  });
+  // set menu (grouped like the collection's) + your binders as one more group
+  const prefix = (tree) => tree.map((n) => n.type === "item" ? { ...n, value: "set:" + n.value }
+    : { ...n, items: n.items.map((i) => ({ ...i, value: "set:" + i.value })) });
+  const tree = prefix(toTree(groupSets(setsWithCards, (state.settings.setGroups || {})[game])));
+  if (binders.length) tree.push({ type: "group", key: "__binders", label: "Binders (" + binders.length + ")",
+                                  items: binders.map((b) => ({ value: "binder:" + b.id, label: b.name })) });
+  const sourcePicker = createSetPicker(tree, { ariaLabel: "Cards from",
+    value: source.type === "binder" ? "binder:" + source.id : "set:" + source.code,
+    onChange: (v) => {
+      const [type, x] = v.split(":");
+      source = type === "binder" ? { type, id: Number(x) } : { type, code: x };
+      selected.clear(); selectMissing(); drawList(); refreshSide();
+    } });
+  const sourceSel = sourcePicker.el;
 
   const seg = (options, value, onPick) => {
     const g = h("div", { class: "segmented", role: "group" });

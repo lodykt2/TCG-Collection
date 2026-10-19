@@ -10,7 +10,7 @@ import { createDrawer } from "../components/prints-drawer.js";
 import { openPrintWindow } from "../components/print-window.js";
 import { GAMES } from "../config.js";
 import { link, go } from "../router.js";
-import { state, loadGame, loadSets, loadBinders } from "../store.js";
+import { state, loadGame, loadSets, loadBinders, moveBinder } from "../store.js";
 import { explain } from "../supabase.js";
 
 export const SET_COLORS = ["#60a5fa", "#a78bfa", "#f59e0b", "#34d399", "#f472b6", "#f87171", "#22d3ee", "#a3e635"];
@@ -30,7 +30,7 @@ export function binderPage(game, id) {
   const meta = GAMES.find((g) => g.id === game);
   const root = h("main", { class: "page binders" }, h("p", { class: "muted" }, "Loading binders…"));
   const drawer = createDrawer(game);
-  let sets = [], binder = null, layout = null, spread = 0;
+  let sets = [], binder = null, layout = null, spread = 0, chipsEl = null;
 
   Promise.all([loadGame(game), loadSets(game), loadBinders(game)])
     .then(([, s]) => { sets = s; draw(); })
@@ -50,19 +50,26 @@ export function binderPage(game, id) {
     layout = layoutBinder(binder, cardsBySetFor(game, sets));
     const saved = Number(sessionStorage.getItem("spread:" + binder.id));
     spread = Number.isFinite(saved) ? Math.min(saved, totalSpreads() - 1) : 0;
-    root.replaceChildren(chips(binders), summary(), navEl, spreadEl, stripEl, drawer.el);
+    chipsEl = chips(binders);
+    root.replaceChildren(chipsEl, summary(), navEl, spreadEl, stripEl, drawer.el);
     drawSpread();
   }
 
   // ── chips: all binders of this game ──
   function chips(binders) {
+    const mover = (b, i, dir) => h("button", { class: "btn btn-icon chip-move", disabled: i + dir < 0 || i + dir >= binders.length,
+      "aria-label": "Move " + b.name + (dir < 0 ? " left" : " right"),
+      onClick: () => moveBinder(game, b.id, dir).catch((e) => toast("Not saved: " + explain(e), "err")) }, dir < 0 ? "◀" : "▶");
     return h("div", { class: "row wrap binder-chips" },
-      binders.map((b) => {
+      binders.map((b, i) => {
         const L = layoutBinder(b, cardsBySetFor(game, sets));
         const all = [...L.where.keys()].map((n) => state.games[game].byNumber.get(n));
-        return h("a", { class: "chip" + (b.id === id ? " active" : ""), href: link(game + "/binders/" + b.id),
+        const chip = h("a", { class: "chip" + (b.id === id ? " active" : ""), href: link(game + "/binders/" + b.id),
                         "aria-current": b.id === id ? "page" : null },
           b.name, h("span", { class: "mono muted" }, pct(all.filter((c) => c.collected).length, all.length) + "%"));
+        // signed in: arrows on the open binder to change the order
+        return state.isAdmin && b.id === id && binders.length > 1
+          ? h("span", { class: "chip-group" }, mover(b, i, -1), chip, mover(b, i, 1)) : chip;
       }),
       state.isAdmin && h("a", { class: "chip chip-new", href: link(game + "/binders/new") }, "+ New binder"));
   }
@@ -174,15 +181,20 @@ export function binderPage(game, id) {
   }
 
   // Ticked a print in the drawer, or new data arrived: refresh without losing your place.
+  let wasAdmin = state.isAdmin;
   function update() {
+    if (state.isAdmin !== wasAdmin) { wasAdmin = state.isAdmin; return draw(); }   // edit buttons appear / disappear
     if (!binder) return draw();
+    const binders = state.binders[game] || [];
+    binder = binders.find((b) => b.id === id) || binder;          // the latest copy (e.g. after reordering)
+    if (chipsEl) { const fresh = chips(binders); chipsEl.replaceWith(fresh); chipsEl = fresh; }
     layout = layoutBinder(binder, cardsBySetFor(game, sets));
     const old = root.querySelector(".binder-summary");
     if (old) old.replaceWith(summary());
     drawSpread(); drawer.refresh();
   }
 
-  return { el: root, update };
+  return { el: root, update, keepOnAuth: true };
 }
 
 function stat(label, value, bad) {

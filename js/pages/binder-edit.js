@@ -49,6 +49,7 @@ export function binderEditPage(game, id) {
     }
     const saveBtn = h("button", { class: "btn btn-primary", onClick: save }, "Save binder");
     root.replaceChildren(
+      h("div", { class: "edit-top" },                       // stays at the top while you scroll
       h("div", { class: "page-head" },
         h("div", {}, h("div", { class: "mono muted" }, h("a", { href: link(game + "/binders" + (id ? "/" + id : "")) }, "Binders"), " › " + (id ? draft.name : "New")),
           h("h1", { class: "page-title" }, id ? "Edit binder" : "New binder")),
@@ -57,22 +58,22 @@ export function binderEditPage(game, id) {
           h("a", { class: "btn", href: link(game + "/binders" + (id ? "/" + id : "")) }, "Cancel"),
           saveBtn)),
       errEl,
+      h("section", { class: "panel details" },
+        h("label", { class: "field wide" }, "Name", name),
+        h("label", { class: "field" }, "Pages in your binder", pages),
+        h("div", { class: "field" }, "Pockets", h("span", { class: "fixed" }, "2 × 2")),
+        h("div", { class: "field wide" }, "Reading order", order))),
       h("div", { class: "edit-cols" },
         h("div", { class: "stack edit-main" },
-          h("section", { class: "panel details" },
-            h("label", { class: "field wide" }, "Name", name),
-            h("label", { class: "field" }, "Pages in your binder", pages),
-            h("div", { class: "field" }, "Pockets", h("span", { class: "fixed" }, "2 × 2")),
-            h("div", { class: "field wide" }, "Reading order", order)),
-          h("section", { class: "stack" }, h("h2", { class: "section-title" }, "Sets in this binder"),
-            h("p", { class: "muted small" }, "Whole sets, cards in card number order."), setsEl),
-          h("section", { class: "stack" }, h("h2", { class: "section-title" }, "Add a set"), addEl),
           h("section", { class: "panel dashed stack" },
             h("span", { class: "strong" }, "Empty pages & pockets ", h("span", { class: "muted" }, "· match your physical binder")),
             adjEl,
             h("div", { class: "row wrap" },
               h("button", { class: "btn btn-accent", onClick: () => { draft.adjustments.push({ kind: "empty_pages", after_kind: draft.sets.length ? "set" : "start", after_value: draft.sets[0] ? draft.sets[0].code : null, count: 1 }); redraw(); } }, "+ Empty pages"),
-              h("button", { class: "btn", onClick: () => { draft.adjustments.push({ kind: "empty_pockets", after_kind: "card", after_value: "", count: 1 }); redraw(); } }, "+ Empty pockets")))),
+              h("button", { class: "btn", onClick: () => { draft.adjustments.push({ kind: "empty_pockets", after_kind: "card", after_value: "", count: 1 }); redraw(); } }, "+ Empty pockets"))),
+          h("section", { class: "stack" }, h("h2", { class: "section-title" }, "Sets in this binder"),
+            h("p", { class: "muted small" }, "Whole sets, cards in card number order."), setsEl),
+          h("section", { class: "stack" }, h("h2", { class: "section-title" }, "Add a set"), addEl)),
         spaceEl));
     redraw();
   }
@@ -103,8 +104,13 @@ export function binderEditPage(game, id) {
 
     // sets that can be added
     const inDraft = new Set(draft.sets.map((s) => s.code));
-    const candidates = sets.filter((s) => (bySet.get(s.code) || []).length && !inDraft.has(s.code));
-    addEl.replaceChildren(...candidates.map((s) => {
+    // sets already in another binder are hidden — a set can only be in one binder
+    const withCards = sets.filter((s) => (bySet.get(s.code) || []).length && !inDraft.has(s.code));
+    const candidates = withCards.filter((s) => !ownerOf(s.code));
+    const hiddenCount = withCards.length - candidates.length;
+    addEl.replaceChildren(...(candidates.length ? [] : [h("p", { class: "muted" }, "Every set is already in a binder.")]),
+      ...(hiddenCount ? [h("p", { class: "muted small add-note" }, hiddenCount + (hiddenCount === 1 ? " set is" : " sets are") + " already in other binders and not shown.")] : []),
+      ...candidates.map((s) => {
       const owner = ownerOf(s.code);
       const n = (bySet.get(s.code) || []).length, need = pagesForCards(n);
       const after = L.used + need;

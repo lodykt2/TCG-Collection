@@ -324,3 +324,19 @@ export async function pendingCount() {
   const { data, error } = await sb.from("pending").select("id");
   return error ? 0 : data.length;
 }
+
+/** Swap a binder with its neighbour in the list (dir: -1 left, +1 right). */
+export async function moveBinder(game, id, dir) {
+  const list = (state.binders && state.binders[game]) || [];
+  const i = list.findIndex((b) => b.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  // give every binder a clean position first, then swap the two
+  const order = list.map((b) => b.id);
+  [order[i], order[j]] = [order[j], order[i]];
+  for (let k = 0; k < order.length; k++) {
+    const { error } = await sb.from("binders").update({ sort_order: k + 1 }).eq("id", order[k]);
+    if (error) throw error;
+  }
+  await loadBinders(game, { force: true });
+  emit();
+}
