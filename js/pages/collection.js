@@ -9,7 +9,7 @@ import { openPrintWindow } from "../components/print-window.js";
 import { openDeckList } from "../components/deck-list.js";
 import { createDrawer } from "../components/prints-drawer.js";
 import { GAMES } from "../config.js";
-import { state, loadGame, loadSets, bulkSetOwned } from "../store.js";
+import { state, loadGame, loadSets, bulkSetOwned, setOwned } from "../store.js";
 import { explain } from "../supabase.js";
 
 const BATCH = 120;   // cards drawn at a time; more appear as you scroll
@@ -180,6 +180,15 @@ export function collectionPage(game) {
       h("span", { class: "tile-name" }, c.name));
   }
 
+  async function quickBase(c) {
+    const base = basePrint(c);
+    const addingWhileOwned = !base.owned && c.collected;
+    try {
+      await setOwned(game, base.id, !base.owned);
+      if (addingWhileOwned) toast("Base art added — you also own another art of " + c.number);
+    } catch (err) { toast("Not saved: " + explain(err), "err"); }
+  }
+
   function togglePick(c) { if (picked.has(c.number)) picked.delete(c.number); else picked.add(c.number); refreshPicks(); }
 
   // ── a card in the list (layout D) ──
@@ -190,8 +199,13 @@ export function collectionPage(game) {
   }
   function row(c) {
     const owned = c.prints.filter((p) => p.owned).length;
+    // The dot: filled when you own ANY print. Clicking it (signed in) marks / unmarks the BASE art only.
+    const dot = state.isAdmin && !selecting
+      ? h("button", { class: "dot-btn", "aria-label": (c.collected ? "Collected" : "Missing") + " — click to " + (basePrint(c).owned ? "unmark" : "mark") + " the base art of " + c.number,
+                      onClick: (e) => { e.stopPropagation(); quickBase(c); } }, h("span", { class: "dot" + (c.collected ? " on" : "") }))
+      : h("span", { class: "dot" + (c.collected ? " on" : ""), role: "img", "aria-label": c.collected ? "collected" : "missing" });
     const tr = h("tr", { class: c.collected ? "owned" : "missing", "data-number": c.number, tabindex: "0" },
-      h("td", {}, h("span", { class: "dot" + (c.collected ? " on" : ""), role: "img", "aria-label": c.collected ? "collected" : "missing" })),
+      h("td", {}, dot),
       h("td", { class: "mono" }, c.number),
       h("td", { class: "strong" }, c.name),
       h("td", {}, c.rarity || "—"),
@@ -205,6 +219,9 @@ export function collectionPage(game) {
   // Called when something changes (e.g. you ticked a print): redraw only what's affected.
   function update() {
     if (!data) return;
+    if (selecting) adminButtons.replaceChildren(...(state.isAdmin ? [
+      h("button", { class: "btn", onClick: () => bulk(true) }, "Mark owned"),
+      h("button", { class: "btn", onClick: () => bulk(false) }, "Mark not owned")] : []));
     const latest = state.games[game];
     if (latest && latest !== data) {                       // new cards arrived: redraw once
       data = latest; sorted = sortCards(data.cards, sets); latest.replaced = false;
@@ -221,7 +238,8 @@ export function collectionPage(game) {
     drawer.refresh();
   }
 
-  return { el: root, update, destroy: () => { observer && observer.disconnect(); } };
+  // keepOnAuth: this page handles signing in / out itself (checkboxes and dots lock or unlock)
+  return { el: root, update, keepOnAuth: true, destroy: () => { observer && observer.disconnect(); } };
 }
 
 // ── small controls ──

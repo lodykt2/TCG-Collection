@@ -174,7 +174,9 @@ export function binderPage(game, id) {
   }
 
   // Ticked a print in the drawer, or new data arrived: refresh without losing your place.
+  let wasAdmin = state.isAdmin;
   function update() {
+    if (state.isAdmin !== wasAdmin) { wasAdmin = state.isAdmin; return draw(); }   // edit buttons appear / disappear
     if (!binder) return draw();
     layout = layoutBinder(binder, cardsBySetFor(game, sets));
     const old = root.querySelector(".binder-summary");
@@ -182,7 +184,7 @@ export function binderPage(game, id) {
     drawSpread(); drawer.refresh();
   }
 
-  return { el: root, update };
+  return { el: root, update, keepOnAuth: true };
 }
 
 function stat(label, value, bad) {

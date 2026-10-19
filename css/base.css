@@ -343,3 +343,32 @@ select.input { padding: 0 10px; }
 [data-theme="light"] .almost-missing { color: #b45309; }
 .latest-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .latest-card { display: flex; flex-direction: column; gap: 4px; }
+
+/* ── Have dot (list view) ── */
+.dot-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin: -9px; padding: 0;
+           border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.dot-btn:hover { background: var(--hover); }
+.dot-btn:hover .dot { border-color: var(--accent); }
+
+/* ── Admin ── */
+.admin-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.admin-tab { height: 42px; padding: 0 16px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--muted); font-weight: 600; cursor: pointer; }
+.admin-tab.on { background: var(--hover); border-color: var(--line-strong); color: var(--text); }
+.admin-tab .count { margin-left: 8px; padding: 1px 8px; border-radius: 99px; background: rgba(252,211,77,0.18); color: #fde68a; font-size: 12px; }
+[data-theme="light"] .admin-tab .count { color: #92400e; }
+.admin-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
+.w-game { width: 90px; } .w-id { width: 130px; } .w-count { width: 110px; } .grow { flex: 1 1 220px; min-width: 0; }
+.sync-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.status-done { background: color-mix(in srgb, var(--ok) 18%, transparent); }
+.status-failed { background: color-mix(in srgb, var(--danger) 18%, transparent); }
+.status-running { background: rgba(252,211,77,0.18); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end; }
+
+/* ── Settings ── */
+.page.narrow-wide { max-width: 1040px; }
+.settings-group { display: flex; flex-direction: column; }
+.settings-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.swatch-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.swatch-btn.on { border-color: var(--text); }
+.color-input { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line-strong); border-radius: 8px; background: transparent; cursor: pointer; }
+.switch { width: 22px; height: 22px; accent-color: var(--accent); cursor: pointer; }
