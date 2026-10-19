@@ -8,6 +8,7 @@ import { explain } from "./supabase.js";
 import { topbar } from "./components/topbar.js";
 import { openNewPassword } from "./components/signin.js";
 import { homePage } from "./pages/home.js";
+import { collectionPage } from "./pages/collection.js";
 import { GAMES } from "./config.js";
 
 const app = document.getElementById("app");
@@ -15,7 +16,7 @@ let route = parse();
 
 const PAGES = {
   "home":        () => homePage(),
-  "collection":  () => comingLater("Collection", 3),
+  "collection":  (r) => collectionPage(r.game),
   "binders":     () => comingLater("Binders", 5),
   "binder":      () => comingLater("Binder", 5),
   "binder-edit": () => adminOnly(() => comingLater("Edit binder", 5)),
@@ -32,11 +33,33 @@ function adminOnly(build) {
     h("p", { class: "muted" }, state.session ? "This account can't open this page." : "Sign in to open this page."));
 }
 
-function render() {
-  applyTheme();
-  const page = (PAGES[route.page] || PAGES["not-found"])();
-  app.replaceChildren(...topbar(route), page);
+// A page is either a plain element, or { el, update?, destroy? } when it can
+// refresh itself (so marking a card owned doesn't jump you back to the top).
+let current = null;
+let topEls = [];
+
+function renderTop() {
+  const next = topbar(route);
+  if (topEls.length) { topEls.forEach((el, i) => el.replaceWith(next[i])); }
+  else app.replaceChildren(...next);
+  topEls = next;
+}
+
+function renderPage() {
+  const oldEl = current && current.el;
+  if (current && current.destroy) current.destroy();
+  const built = (PAGES[route.page] || PAGES["not-found"])(route);
+  current = built instanceof Node ? { el: built } : built;
+  if (oldEl && oldEl.parentNode === app) oldEl.replaceWith(current.el); else app.append(current.el);
   document.title = "TCG Dashboard" + (route.game ? " · " + GAMES.find((g) => g.id === route.game).label : "");
+}
+
+function render() { applyTheme(); renderTop(); renderPage(); }
+
+function onStateChange() {
+  applyTheme();
+  renderTop();
+  if (current && current.update) current.update(); else renderPage();
 }
 
 function applyTheme() {
@@ -58,8 +81,9 @@ async function start() {
     const last = localStorage.getItem("lastGame");
     if (last && GAMES.some((g) => g.id === last)) { history.replaceState(null, "", "#/" + last); route = parse(); }
   }
+  app.replaceChildren();
   render();
-  subscribe(() => render());
+  subscribe(onStateChange);
   onRoute((r) => {
     route = r;
     if (r.game) { try { localStorage.setItem("lastGame", r.game); } catch (_) { /* private mode */ } }

@@ -11,7 +11,11 @@ export function h(tag, attrs = {}, ...children) {
     if (key === "class") el.className = value;
     else if (key === "style" && typeof value === "object") Object.assign(el.style, value);
     else if (key.startsWith("on") && typeof value === "function") el.addEventListener(key.slice(2).toLowerCase(), value);
-    else el.setAttribute(key, value === true ? "" : String(value));
+    else {
+      el.setAttribute(key, value === true ? "" : String(value));
+      // keep the live state in step too (ticked boxes, chosen options, typed values)
+      if (key === "checked" || key === "selected" || key === "value") el[key] = value;
+    }
   }
   for (const child of children.flat(Infinity)) {
     if (child === null || child === undefined || child === false) continue;

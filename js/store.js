@@ -12,6 +12,7 @@ export const state = {
   settings: structuredClone(DEFAULT_SETTINGS),
   progress: [],         // one row per game from the game_progress view
   games: {},            // loaded card lists, per game
+  sets: {},             // sets per game, in release order
 };
 
 const listeners = new Set();
@@ -131,4 +132,13 @@ export async function setOwned(game, printId, owned) {
     throw error;
   }
   loadProgress().catch(() => {});       // refresh the counters quietly
+}
+
+// ── SETS (names and order, from the sets table) ──────────────
+export async function loadSets(game) {
+  if (state.sets[game]) return state.sets[game];
+  const { data, error } = await sb.from("sets").select("code,name,set_group,sort_order").eq("game", game).order("sort_order");
+  if (error) throw error;
+  state.sets[game] = data;
+  return data;
 }
