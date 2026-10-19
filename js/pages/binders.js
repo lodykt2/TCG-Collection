@@ -172,7 +172,8 @@ export function binderPage(game, id) {
         h("span", { class: "eyebrow" }, "Pages · " + layout.used + " of " + layout.capacity + " used"),
         h("span", { class: "spacer" }),
         binder.sets.map((s, i) => legend(SET_COLORS[i % SET_COLORS.length], s.code)),
-        legend(null, "Missing", "miss"), legend(null, "Unused pocket", "none")),
+        legend(null, "Missing", "miss"), legend(null, "Unused pocket", "none"),
+        layout.pages.some((p) => p.kind === "empty") && legend(null, "Empty page", "hatch")),
       h("div", { class: "pblocks" }, blocks));
   }
 

@@ -270,10 +270,12 @@ select.input { padding: 0 10px; }
 .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
 .legend-dot.miss { background: #2a2a35; }
 .legend-dot.none { border: 1px dashed #4a4a5c; }
+.legend-dot.hatch { border: 1px solid var(--muted); background: repeating-linear-gradient(45deg, transparent 0 2px, var(--muted) 2px 3px); }
 .pblocks { display: flex; flex-wrap: wrap; gap: 5px; }
 .pblock { width: 26px; height: 26px; padding: 3px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; border-radius: 3px;
           background: var(--panel); border: 1px solid var(--line-strong); cursor: pointer; }
-.pblock.empty { border-style: dashed; }
+.pblock.empty { border-style: solid; border-color: var(--muted);
+                background: repeating-linear-gradient(45deg, var(--panel) 0 3px, color-mix(in srgb, var(--muted) 60%, transparent) 3px 4px); }
 .pblock.unused { border-color: var(--line); opacity: 0.6; }
 .pblock.here { outline: 2px solid var(--text); outline-offset: 1px; }
 .mini { display: block; border-radius: 1px; }
@@ -298,11 +300,14 @@ select.input { padding: 0 10px; }
 .btn.danger, .btn-danger { color: var(--danger); }
 .btn-danger { border-color: color-mix(in srgb, var(--danger) 45%, transparent); background: transparent; }
 .space { flex: 1 1 320px; max-width: 440px; display: flex; flex-direction: column; gap: 12px; position: sticky; top: 70px; }
-.page-map { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
-.map-cell { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--hover); }
+/* small fixed squares that wrap: the panel stays compact however many pages the binder has */
+.page-map { display: flex; flex-wrap: wrap; gap: 3px; max-height: 260px; overflow-y: auto; }
+.map-cell { display: inline-block; flex: 0 0 12px; width: 12px; height: 12px; border-radius: 2px; background: var(--hover); box-sizing: border-box; }
 .map-cell.free { background: transparent; border: 1px solid var(--line-strong); }
-.map-cell.empty { background: transparent; border: 1px dashed var(--muted); }
-.map-cell.over { outline: 2px solid var(--danger); outline-offset: -2px; }
+.map-cell.empty { border: 1px solid var(--muted);
+                  background: repeating-linear-gradient(45deg, transparent 0 2px, var(--muted) 2px 3px); }
+.map-cell.over { box-shadow: inset 0 0 0 2px var(--danger); }
+.map-legend { gap: 14px; color: var(--muted); }
 .pw-cell-where { font-family: var(--mono); font-size: 6px; color: #888; text-align: center; padding: 0 2px; }
 @media (max-width: 700px) { .details { grid-template-columns: 1fr 1fr; } .bpage { min-height: 300px; } }
 

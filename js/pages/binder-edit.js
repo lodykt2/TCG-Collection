@@ -137,9 +137,14 @@ export function binderEditPage(game, id) {
       h("div", { class: "page-map" }, Array.from({ length: total }, (_, k) => {
         const p = L.pages[k];
         const cls = !p ? "free" : p.kind === "empty" ? "empty" : "";
+        const what = !p ? "not used" : p.kind === "empty" ? "empty page" : p.set;
         return h("span", { class: "map-cell " + cls + (k >= draft.pages ? " over" : ""), style: p && p.set ? { background: colorOf.get(p.set) } : null,
-                           title: "Page " + (k + 1) });
+                           title: "Page " + (k + 1) + " · " + what + (k >= draft.pages ? " · beyond your binder" : "") });
       })),
+      h("div", { class: "row wrap small map-legend" },
+        h("span", { class: "legend" }, h("span", { class: "map-cell empty" }), "empty page"),
+        h("span", { class: "legend" }, h("span", { class: "map-cell free" }), "not used"),
+        L.used > draft.pages && h("span", { class: "legend" }, h("span", { class: "map-cell over" }), "beyond your binder")),
       h("div", { class: "stack-tight small" }, draft.sets.map((s) => {
         const pg = L.pages.filter((p) => p.set === s.code);
         return pg.length ? h("span", { class: "legend" }, h("span", { class: "legend-dot", style: { background: colorOf.get(s.code) } }),
