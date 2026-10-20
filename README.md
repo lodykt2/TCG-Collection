@@ -1,12 +1,12 @@
 # Collection backup
 
-Last run: 2026-10-19T09:12:45.341Z
+Last run: 2026-10-20T08:47:51.899Z
 
 | table | rows |
 |---|---|
 | games | 3 |
-| sets | 102 |
-| cards | 10292 |
-| owned | 3661 |
-| update_log | 250 |
+| sets | 103 |
+| cards | 10430 |
+| owned | 3767 |
+| update_log | 592 |
 | settings | 0 |

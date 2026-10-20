@@ -78,6 +78,7 @@
 {"game":"gundam","code":"GD03","name":"Steel Requiem","set_group":"Booster","sort_order":3},
 {"game":"gundam","code":"GD04","name":"Phantom Aria","set_group":"Booster","sort_order":4},
 {"game":"gundam","code":"GD05","name":"Freedom Ascension","set_group":"Booster","sort_order":5},
+{"game":"gundam","code":"GD06","name":"Stardust Trails","set_group":"Booster","sort_order":6},
 {"game":"gundam","code":"RES","name":"Resources","set_group":"Resources","sort_order":3000},
 {"game":"gundam","code":"RP","name":"Promo Resources","set_group":"Promo (hidden)","sort_order":7000},
 {"game":"gundam","code":"ST01","name":"Heroic Beginnings","set_group":"Starter Deck","sort_order":2001},
