@@ -598,5 +598,7 @@
 {"id":597,"at":"2026-10-21T06:00:07.266105+00:00","game":"palworld","action":"New Alt Art","card_id":"EBP02-075-SP","set_code":"EBP02","details":"Tombat – Resonance of Shadows · SP · Parallel SP","source":"palworldtcg.gg"},
 {"id":598,"at":"2026-10-21T06:00:07.266105+00:00","game":"palworld","action":"New Card","card_id":"EBP02-079","set_code":"EBP02","details":"Nox – One-Way Ticket · U","source":"palworldtcg.gg"},
 {"id":599,"at":"2026-10-21T06:00:07.266105+00:00","game":"palworld","action":"New Card","card_id":"EBP02-100","set_code":"EBP02","details":"Awakening of Legends · C","source":"palworldtcg.gg"},
-{"id":600,"at":"2026-10-21T06:00:07.266105+00:00","game":"palworld","action":"Sync","card_id":"","set_code":"","details":"5 new cards, 2 new alt arts, 0 changes waiting (full sync)","source":"Sync #6"}
+{"id":600,"at":"2026-10-21T06:00:07.266105+00:00","game":"palworld","action":"Sync","card_id":"","set_code":"","details":"5 new cards, 2 new alt arts, 0 changes waiting (full sync)","source":"Sync #6"},
+{"id":601,"at":"2026-10-22T19:31:46.763212+00:00","game":"digimon","action":"Owned","card_id":"ST5-13","set_code":"ST5","details":"BlitzGreymon","source":"Dashboard"},
+{"id":602,"at":"2026-10-22T19:31:55.175631+00:00","game":"digimon","action":"Owned","card_id":"BT4-020","set_code":"BT4","details":"ShineGreymon","source":"Dashboard"}
 ]
