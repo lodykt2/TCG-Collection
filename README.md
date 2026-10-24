@@ -1,6 +1,6 @@
 # Collection backup
 
-Last run: 2026-10-23T08:46:03.170Z
+Last run: 2026-10-24T08:20:16.285Z
 
 | table | rows |
 |---|---|
@@ -8,5 +8,5 @@ Last run: 2026-10-23T08:46:03.170Z
 | sets | 103 |
 | cards | 10437 |
 | owned | 3769 |
-| update_log | 602 |
+| update_log | 704 |
 | settings | 0 |
