@@ -733,5 +733,6 @@
 {"id":732,"at":"2026-10-26T06:00:12.779325+00:00","game":"digimon","action":"New Card","card_id":"BT27-098","set_code":"BT27","details":"Akihiro Kurata · U","source":"digimoncard.io"},
 {"id":733,"at":"2026-10-26T06:00:12.779325+00:00","game":"digimon","action":"New Card","card_id":"BT27-099","set_code":"BT27","details":"Surtr Brander · C","source":"digimoncard.io"},
 {"id":734,"at":"2026-10-26T06:00:12.779325+00:00","game":"digimon","action":"New Card","card_id":"BT27-100","set_code":"BT27","details":"Hjaðningar Waltz · C","source":"digimoncard.io"},
-{"id":735,"at":"2026-10-26T06:00:12.779325+00:00","game":"digimon","action":"Sync","card_id":"","set_code":"","details":"30 new cards, 0 new alt arts, 0 changes waiting (weekly sync)","source":"Sync #7"}
+{"id":735,"at":"2026-10-26T06:00:12.779325+00:00","game":"digimon","action":"Sync","card_id":"","set_code":"","details":"30 new cards, 0 new alt arts, 0 changes waiting (weekly sync)","source":"Sync #7"},
+{"id":736,"at":"2026-10-27T06:00:08.046654+00:00","game":"gundam","action":"Sync","card_id":"","set_code":"","details":"0 new cards, 0 new alt arts, 0 changes waiting (full sync)","source":"Sync #8"}
 ]
