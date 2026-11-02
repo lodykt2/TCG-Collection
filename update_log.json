@@ -882,5 +882,6 @@
 {"id":881,"at":"2026-11-01T07:00:46.050374+00:00","game":"digimon","action":"New Card","card_id":"BT27-096","set_code":"BT27","details":"Keenan Crier · R","source":"digimoncard.io"},
 {"id":882,"at":"2026-11-01T07:00:46.050374+00:00","game":"digimon","action":"New Card","card_id":"BT27-097","set_code":"BT27","details":"Makoto Kuonji · UNKNOWN","source":"digimoncard.io"},
 {"id":883,"at":"2026-11-01T07:00:46.050374+00:00","game":"digimon","action":"New Card","card_id":"BT27-101","set_code":"BT27","details":"Silver-Winged Yaksha · C","source":"digimoncard.io"},
-{"id":884,"at":"2026-11-01T07:00:46.050374+00:00","game":"digimon","action":"Sync","card_id":"","set_code":"","details":"22 new cards, 0 new alt arts, 0 changes waiting (full sync)","source":"Sync #10"}
+{"id":884,"at":"2026-11-01T07:00:46.050374+00:00","game":"digimon","action":"Sync","card_id":"","set_code":"","details":"22 new cards, 0 new alt arts, 0 changes waiting (full sync)","source":"Sync #10"},
+{"id":885,"at":"2026-11-02T06:00:26.26852+00:00","game":"digimon","action":"Sync","card_id":"","set_code":"","details":"0 new cards, 0 new alt arts, 0 changes waiting (weekly sync)","source":"Sync #11"}
 ]
