@@ -4,7 +4,7 @@
 #      .github/workflows/backup.yml
 #  (on the main branch — GitHub only runs schedules from there)
 #
-#  It saves owned cards, cards, sets and the changelog as files in a
+#  It saves owned cards, cards, sets, the changelog and your binders as files in a
 #  separate "backups" branch. Every night is a commit, so the branch's
 #  history is your list of restore points.
 #
@@ -60,7 +60,8 @@ jobs:
           const save = (file, rows) => fs.writeFileSync(file, "[\n" + rows.map((r) => JSON.stringify(r)).join(",\n") + "\n]\n");
 
           const tables = { games: "id", sets: "game,code", cards: "game,card_id", owned: "game,card_id",
-                           update_log: "id", settings: "key" };
+                           update_log: "id", settings: "key",
+                           binders: "id", binder_sets: "binder_id,position", binder_adjustments: "id" };
           const data = {};
           for (const [t, order] of Object.entries(tables)) data[t] = await readAll(t, order);
 
