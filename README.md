@@ -1,6 +1,6 @@
 # Collection backup
 
-Last run: 2026-11-03T11:13:20.218Z
+Last run: 2026-11-04T11:24:07.829Z
 
 | table | rows |
 |---|---|
@@ -10,3 +10,6 @@ Last run: 2026-11-03T11:13:20.218Z
 | owned | 3769 |
 | update_log | 942 |
 | settings | 0 |
+| binders | 34 |
+| binder_sets | 85 |
+| binder_adjustments | 29 |
