@@ -88,8 +88,9 @@ export async function loadProgress() {
   const { data, error } = await sb.from("game_progress").select("*").order("sort_order");
   if (error) throw error;
   state.progress = data;
-  state.setProgress = null;          // set counts and the changelog are fetched fresh next time
+  state.setProgress = null;          // set counts, the changelog and history are fetched fresh next time
   state.log = null;
+  state.ownedDaily = null;
   emit();
 }
 export const progressFor = (game) => state.progress.find((p) => p.game === game);
@@ -339,4 +340,14 @@ export async function moveBinder(game, id, dir) {
   }
   await loadBinders(game, { force: true });
   emit();
+}
+
+// ── PROGRESS OVER TIME ────────────────────────────────────────
+export async function loadOwnedDaily({ force = false } = {}) {
+  if (state.ownedDaily && !force) return state.ownedDaily;
+  const since = new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10);
+  const { data, error } = await sb.from("owned_daily").select("*").gte("day", since);
+  if (error) throw error;
+  state.ownedDaily = data;
+  return data;
 }

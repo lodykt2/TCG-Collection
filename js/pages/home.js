@@ -6,15 +6,20 @@ import { h, fmt, pct } from "../ui.js";
 import { icon } from "../components/icons.js";
 import { GAMES } from "../config.js";
 import { link } from "../router.js";
-import { state, loadSetProgress, loadLog, loadGame } from "../store.js";
+import { state, loadSetProgress, loadLog, loadGame, loadOwnedDaily } from "../store.js";
+import { buildHistory } from "../lib/history.js";
+import { lineChart, monthBars } from "../components/charts.js";
 import { cardImage } from "../images.js";
 import { openPrintWindow } from "../components/print-window.js";
 
 export function homePage() {
   const extras = h("div", { class: "home-extras" });
   Promise.all([loadSetProgress(), loadLog()]).then(([sets, log]) => drawExtras(extras, sets, log)).catch(() => {});
+  const progress = h("div", { class: "home-progress-wrap" });
+  Promise.all([loadOwnedDaily(), ...GAMES.map((g) => loadGame(g.id))])
+    .then(([daily]) => drawProgress(progress, daily)).catch(() => {});
   const main = homeTop();
-  main.append(extras);
+  main.append(extras, progress);
   return main;
 }
 
@@ -48,6 +53,28 @@ function drawExtras(box, sets, log) {
     const grid = box.querySelector(".latest-grid");
     if (grid) grid.replaceChildren(...latest.slice(0, 6).map((e) => latestCard(e)));
   }).catch(() => {});
+}
+
+/** "Progress over time": per game, owned prints over the last 90 days and cards added per month. */
+function drawProgress(box, daily) {
+  const current = Object.fromEntries(GAMES.map((g) => [g.id, (state.games[g.id] ? state.games[g.id].prints.filter((p) => p.owned).length : 0)]));
+  const H = buildHistory(daily, current, { days: 90, months: 6 });
+  const games = GAMES.filter((g) => current[g.id] > 0 || H[g.id].months.some((m) => m.added));
+  if (!games.length) { box.replaceChildren(); return; }
+  box.replaceChildren(h("section", { class: "panel home-progress", "aria-label": "Progress over time" },
+    h("div", { class: "row" }, h("h2", { class: "section-title" }, "Progress over time"), h("span", { class: "spacer" }),
+      h("span", { class: "mono muted" }, "owned prints · last 90 days")),
+    h("div", { class: "progress-grid" }, games.map((g) => {
+      const x = H[g.id], color = state.settings.accents[g.id] || g.color;
+      const change = x.last30 === 0 ? "no change in 30 days" : (x.last30 > 0 ? "+" : "") + fmt(x.last30) + " in the last 30 days";
+      return h("div", { class: "progress-card" },
+        h("div", { class: "row" }, icon(g.id, color, 18), h("span", { class: "strong" }, g.label), h("span", { class: "spacer" }),
+          h("span", { class: "big-small" }, fmt(current[g.id]))),
+        h("span", { class: "small " + (x.last30 > 0 ? "ok-text" : "muted") }, change),
+        lineChart(x.points, { color, label: g.label + ": owned prints over the last 90 days, now " + current[g.id] }),
+        h("div", { class: "row" }, h("span", { class: "muted small" }, "added per month"), h("span", { class: "spacer" }),
+          monthBars(x.months, { color, label: g.label + ": cards added per month — " + x.months.map((m) => m.month + " " + m.added).join(", ") })));
+    }))));
 }
 
 function latestCard(e) {

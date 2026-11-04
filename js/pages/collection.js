@@ -19,7 +19,7 @@ const BATCH = 120;   // cards drawn at a time; more appear as you scroll
 export function collectionPage(game) {
   const meta = GAMES.find((g) => g.id === game);
   const saved = JSON.parse(sessionStorage.getItem("filters:" + game) || "null");
-  const filters = saved || { q: "", set: "", rarity: "", owned: "all", view: state.settings.view };
+  const filters = { sort: "number", ...(saved || { q: "", set: "", rarity: "", owned: "all", view: state.settings.view }) };
   let data = null, sets = [], sorted = [], visibleList = [], shown = 0;
   const tiles = new Map();              // card number → its tile, for quick updates
   let observer = null;
@@ -63,6 +63,7 @@ export function collectionPage(game) {
         segmented("Show", [["all", "All"], ["owned", "Owned"], ["missing", "Missing"]], filters.owned, (v) => { filters.owned = v; apply(); }),
         h("span", { class: "spacer" }),
         resultEl,
+        segmented("Sort", [["number", "Number"], ["name", "A–Z"]], filters.sort, (v) => { filters.sort = v; apply(); }),
         segmented("View", [["grid", "Grid"], ["list", "List"]], filters.view, (v) => { filters.view = v; apply(); })),
       h("div", { class: "actions", role: "toolbar", "aria-label": "Print and export" },
         h("button", { class: "btn", onClick: printFromView }, "Print"),
@@ -71,6 +72,18 @@ export function collectionPage(game) {
         selectBtn),
       listEl, moreBtn, selectBar, drawer.el);
     apply();
+  }
+
+  // Number = release order (set, then card number). A–Z = by name; same names keep number order.
+  let byName = null;
+  function ordered() {
+    if (filters.sort !== "name") return sorted;
+    if (!byName || byName.source !== sorted) {
+      const rank = new Map(sorted.map((c, i) => [c, i]));
+      byName = sorted.slice().sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base", numeric: true }) || rank.get(a) - rank.get(b));
+      byName.source = sorted;
+    }
+    return byName;
   }
 
   function setHasCards(code) { return data.cards.some((c) => c.set === code && (c.visible || state.settings.showHidden)); }
@@ -132,7 +145,7 @@ export function collectionPage(game) {
   // ── filtering + drawing ──
   function apply() {
     sessionStorage.setItem("filters:" + game, JSON.stringify(filters));
-    const { list, scope } = filterCards(sorted, filters, { showHidden: state.settings.showHidden });
+    const { list, scope } = filterCards(ordered(), filters, { showHidden: state.settings.showHidden });
     visibleList = list;
     drawStats(scope);
     resultEl.textContent = fmt(list.length) + " cards";
