@@ -1,5 +1,7 @@
 [
 {"game":"digimon","code":"AD1","name":"Digimon Generation","set_group":"Advanced Booster","sort_order":3001},
+{"game":"digimon","code":"BD1","name":"","set_group":"","sort_order":9999},
+{"game":"digimon","code":"BD2","name":"","set_group":"","sort_order":9999},
 {"game":"digimon","code":"BT1","name":"New Evolution","set_group":"Booster","sort_order":1},
 {"game":"digimon","code":"BT10","name":"Xros Encounter","set_group":"Booster","sort_order":10},
 {"game":"digimon","code":"BT11","name":"Dimensional Phase","set_group":"Booster","sort_order":11},

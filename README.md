@@ -1,14 +1,14 @@
 # Collection backup
 
-Last run: 2026-11-08T10:40:07.459Z
+Last run: 2026-11-09T11:57:31.162Z
 
 | table | rows |
 |---|---|
 | games | 3 |
-| sets | 103 |
-| cards | 10669 |
+| sets | 105 |
+| cards | 10720 |
 | owned | 3769 |
-| update_log | 942 |
+| update_log | 996 |
 | settings | 0 |
 | binders | 34 |
 | binder_sets | 85 |
