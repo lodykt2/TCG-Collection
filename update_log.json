@@ -994,5 +994,6 @@
 {"id":993,"at":"2026-11-09T06:00:29.483294+00:00","game":"digimon","action":"New Card","card_id":"BT27-093","set_code":"BT27","details":"Miki Kurosaki & Megumi Shirakawa · C","source":"digimoncard.io"},
 {"id":994,"at":"2026-11-09T06:00:29.483294+00:00","game":"digimon","action":"New Card","card_id":"BT27-102","set_code":"BT27","details":"Bio Hybrid Digivolution · C","source":"digimoncard.io"},
 {"id":995,"at":"2026-11-09T06:00:29.483294+00:00","game":"digimon","action":"New Card","card_id":"BT27-104","set_code":"BT27","details":"King Drasil · SEC","source":"digimoncard.io"},
-{"id":996,"at":"2026-11-09T06:00:29.483294+00:00","game":"digimon","action":"Sync","card_id":"","set_code":"","details":"51 new cards, 0 new alt arts, 23 changes waiting (weekly sync)","source":"Sync #14"}
+{"id":996,"at":"2026-11-09T06:00:29.483294+00:00","game":"digimon","action":"Sync","card_id":"","set_code":"","details":"51 new cards, 0 new alt arts, 23 changes waiting (weekly sync)","source":"Sync #14"},
+{"id":997,"at":"2026-11-10T06:00:09.136288+00:00","game":"gundam","action":"Sync","card_id":"","set_code":"","details":"0 new cards, 0 new alt arts, 0 changes waiting (full sync)","source":"Sync #15"}
 ]
