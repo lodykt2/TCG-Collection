@@ -995,5 +995,10 @@
 {"id":994,"at":"2026-11-09T06:00:29.483294+00:00","game":"digimon","action":"New Card","card_id":"BT27-102","set_code":"BT27","details":"Bio Hybrid Digivolution · C","source":"digimoncard.io"},
 {"id":995,"at":"2026-11-09T06:00:29.483294+00:00","game":"digimon","action":"New Card","card_id":"BT27-104","set_code":"BT27","details":"King Drasil · SEC","source":"digimoncard.io"},
 {"id":996,"at":"2026-11-09T06:00:29.483294+00:00","game":"digimon","action":"Sync","card_id":"","set_code":"","details":"51 new cards, 0 new alt arts, 23 changes waiting (weekly sync)","source":"Sync #14"},
-{"id":997,"at":"2026-11-10T06:00:09.136288+00:00","game":"gundam","action":"Sync","card_id":"","set_code":"","details":"0 new cards, 0 new alt arts, 0 changes waiting (full sync)","source":"Sync #15"}
+{"id":997,"at":"2026-11-10T06:00:09.136288+00:00","game":"gundam","action":"Sync","card_id":"","set_code":"","details":"0 new cards, 0 new alt arts, 0 changes waiting (full sync)","source":"Sync #15"},
+{"id":998,"at":"2026-11-11T06:00:15.697289+00:00","game":"palworld","action":"Change Approved","card_id":"EPR-025","set_code":"EPR","details":"Card Number: EPR-025 → EBP02-062","source":"Pending"},
+{"id":999,"at":"2026-11-11T06:00:15.697289+00:00","game":"palworld","action":"Change Approved","card_id":"EPR-025S","set_code":"EPR","details":"Variant: Parallel S → Promo S","source":"Pending"},
+{"id":1000,"at":"2026-11-11T06:00:15.697289+00:00","game":"palworld","action":"Change Approved","card_id":"EPR-025S","set_code":"EPR","details":"Set Code: EPR → EBP02","source":"Pending"},
+{"id":1001,"at":"2026-11-11T06:00:15.697289+00:00","game":"palworld","action":"Change Approved","card_id":"ETD02-001","set_code":"ETD02","details":"Rarity: TD → TDR","source":"Pending"},
+{"id":1002,"at":"2026-11-11T06:00:15.697289+00:00","game":"palworld","action":"Sync","card_id":"","set_code":"","details":"0 new cards, 0 new alt arts, 6 changes waiting (full sync)","source":"Sync #16"}
 ]
